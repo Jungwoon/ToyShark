@@ -12,17 +12,30 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-package com.lipisoft.toyshark;
+*/
 
-import java.io.IOException;
+package com.lipisoft.toyshark
+
+import java.io.FileOutputStream
+import java.io.IOException
 
 /**
+ * write packet data back to VPN client stream. This class is thread safe.
  * @author Borey Sao
  * Date: May 22, 2014
  */
-public interface IClientPacketWriter {
-    void write(byte[] data) throws IOException;
+class ClientPacketWriterImpl(private val clientWriter: FileOutputStream)
+    : ClientPacketWriter {
 
-    void write(byte[] data, int offset, int count) throws IOException;
+    @Synchronized
+    @Throws(IOException::class)
+    override fun write(data: ByteArray) {
+        clientWriter.write(data)
+    }
+
+    @Synchronized
+    @Throws(IOException::class)
+    override fun write(data: ByteArray, offset: Int, count: Int) {
+        clientWriter.write(data, offset, count)
+    }
 }

@@ -1,4 +1,4 @@
-package com.lipisoft.toyshark.packetRebuild;
+package com.lipisoft.toyshark.util;
 
 import java.net.UnknownHostException;
 
@@ -193,7 +193,7 @@ public class ByteUtils {
      * @param idx      - the starting index
      * @return the num
      */
-    static long getByteNetOrderTo_unit32(byte[] theBytes, int idx) {
+    public static long getByteNetOrderTo_unit32(byte[] theBytes, int idx) {
         long sum = 0;
         for (int i = 0; i < 4; i++) {
             sum = sum * 256 + (0xff & theBytes[i + idx]);

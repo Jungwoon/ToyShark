@@ -2,7 +2,7 @@ package com.lipisoft.toyshark.socket;
 
 import android.util.Log;
 
-import com.lipisoft.toyshark.IClientPacketWriter;
+import com.lipisoft.toyshark.ClientPacketWriter;
 import com.lipisoft.toyshark.session.Session;
 import com.lipisoft.toyshark.session.SessionManager;
 import com.lipisoft.toyshark.util.PacketUtil;
@@ -30,17 +30,17 @@ public class SocketNIODataService implements Runnable {
     public static final Object syncSelector = new Object();
     public static final Object syncSelector2 = new Object();
 
-    private static IClientPacketWriter writer;
+    private static ClientPacketWriter writer;
     private volatile boolean shutdown = false;
     private Selector selector;
 
     // create thread pool for reading/writing data to socket
     private ThreadPoolExecutor workerPool;
 
-    public SocketNIODataService(IClientPacketWriter iClientPacketWriter) {
+    public SocketNIODataService(ClientPacketWriter clientPacketWriter) {
         final BlockingQueue<Runnable> taskQueue = new LinkedBlockingQueue<>();
         workerPool = new ThreadPoolExecutor(8, 100, 10, TimeUnit.SECONDS, taskQueue);
-        writer = iClientPacketWriter;
+        writer = clientPacketWriter;
     }
 
     @Override

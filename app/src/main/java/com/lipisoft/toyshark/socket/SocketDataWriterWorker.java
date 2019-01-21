@@ -3,7 +3,7 @@ package com.lipisoft.toyshark.socket;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import com.lipisoft.toyshark.IClientPacketWriter;
+import com.lipisoft.toyshark.ClientPacketWriter;
 import com.lipisoft.toyshark.session.Session;
 import com.lipisoft.toyshark.session.SessionManager;
 import com.lipisoft.toyshark.transport.tcp.TCPPacketFactory;
@@ -20,11 +20,11 @@ import java.util.Date;
 public class SocketDataWriterWorker implements Runnable {
     private static final String TAG = "SocketDataWriterWorker";
 
-    private static IClientPacketWriter writer;
+    private static ClientPacketWriter writer;
     @NonNull
     private String sessionKey;
 
-    SocketDataWriterWorker(IClientPacketWriter writer, @NonNull String sessionKey) {
+    SocketDataWriterWorker(ClientPacketWriter writer, @NonNull String sessionKey) {
         SocketDataWriterWorker.writer = writer;
         this.sessionKey = sessionKey;
     }

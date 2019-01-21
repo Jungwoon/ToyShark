@@ -19,7 +19,7 @@ package com.lipisoft.toyshark.session;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import com.lipisoft.toyshark.IClientPacketWriter;
+import com.lipisoft.toyshark.ClientPacketWriter;
 import com.lipisoft.toyshark.Packet;
 import com.lipisoft.toyshark.PacketManager;
 import com.lipisoft.toyshark.network.ip.IPPacketFactory;
@@ -46,7 +46,7 @@ public class SessionHandler {
     private static final String TAG = "SessionHandler";
 
     private static final SessionHandler handler = new SessionHandler();
-    private IClientPacketWriter writer;
+    private ClientPacketWriter writer;
     private SocketData packetData;
 
     public static SessionHandler getInstance() {
@@ -57,7 +57,7 @@ public class SessionHandler {
         packetData = SocketData.getInstance();
     }
 
-    public void setWriter(IClientPacketWriter writer) {
+    public void setWriter(ClientPacketWriter writer) {
         this.writer = writer;
     }
 

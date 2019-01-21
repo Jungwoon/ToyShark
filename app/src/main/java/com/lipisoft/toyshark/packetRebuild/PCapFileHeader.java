@@ -1,5 +1,7 @@
 package com.lipisoft.toyshark.packetRebuild;
 
+import com.lipisoft.toyshark.util.ByteUtils;
+
 import java.io.IOException;
 import java.io.InputStream;
 

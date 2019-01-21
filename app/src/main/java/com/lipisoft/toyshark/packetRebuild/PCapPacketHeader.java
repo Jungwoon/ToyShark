@@ -1,5 +1,7 @@
 package com.lipisoft.toyshark.packetRebuild;
 
+import com.lipisoft.toyshark.util.ByteUtils;
+
 /**
  * Pkt header in the libcap file.
  * struct sf_pkthdr {

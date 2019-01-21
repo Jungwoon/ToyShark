@@ -97,7 +97,7 @@ public class Session {
 
     public long connectionStartTime = 0;
 
-    Session(int sourceIp, int sourcePort, int destinationIp, int destinationPort) {
+    public Session(int sourceIp, int sourcePort, int destinationIp, int destinationPort) {
         receivingStream = new ByteArrayOutputStream();
         sendingStream = new ByteArrayOutputStream();
         this.sourceIp = sourceIp;
