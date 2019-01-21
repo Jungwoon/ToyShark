@@ -43,4 +43,4 @@ public class SocketData {
 	public synchronized byte[] getData() {
 			return data.poll();
 	}
-}//end class
+}

@@ -5,6 +5,8 @@ import android.os.Looper;
 import android.os.Message;
 import android.support.annotation.NonNull;
 
+import com.lipisoft.toyshark.list.PacketListAdapter;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,9 +14,11 @@ public enum PacketManager {
     INSTANCE;
 
     public static final int PACKET = 0;
-    @NonNull private final List<Packet> list = new ArrayList<>();
+    @NonNull
+    private final List<Packet> list = new ArrayList<>();
     private PacketListAdapter adapter;
-    @NonNull private final Handler handler = new Handler(Looper.getMainLooper()) {
+    @NonNull
+    private final Handler handler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
             if (msg != null) {
@@ -30,7 +34,8 @@ public enum PacketManager {
         return list.add(packet);
     }
 
-    @NonNull public List<Packet> getList() {
+    @NonNull
+    public List<Packet> getList() {
         return list;
     }
 
@@ -38,7 +43,8 @@ public enum PacketManager {
         this.adapter = adapter;
     }
 
-    @NonNull public Handler getHandler() {
+    @NonNull
+    public Handler getHandler() {
         return handler;
     }
 }

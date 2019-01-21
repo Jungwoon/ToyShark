@@ -1,8 +1,10 @@
-package com.lipisoft.toyshark;
+package com.lipisoft.toyshark.list;
 
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.TextView;
+
+import com.lipisoft.toyshark.R;
 
 public class PacketInfoViewHolder extends RecyclerView.ViewHolder {
     private final TextView time;
@@ -10,7 +12,7 @@ public class PacketInfoViewHolder extends RecyclerView.ViewHolder {
     private final TextView address;
     private final TextView port;
 
-    PacketInfoViewHolder(View itemView) {
+    public PacketInfoViewHolder(View itemView) {
         super(itemView);
         time = itemView.findViewById(R.id.time);
         protocol = itemView.findViewById(R.id.protocol);

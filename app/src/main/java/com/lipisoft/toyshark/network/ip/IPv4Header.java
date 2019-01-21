@@ -12,209 +12,178 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package com.lipisoft.toyshark.network.ip;
 
-import android.support.annotation.Nullable;
 
 /**
  * Data structure for IPv4 header as defined in RFC 791.
+ *
  * @author Borey Sao
  * Date: May 8, 2014
  */
 public class IPv4Header {
-	//IP packet is the four-bit version field. For IPv4, this has a value of 4 (hence the name IPv4).
-	private byte ipVersion;
-	
-	//the size of the header (this also coincides with the offset to the data)
-	private byte internetHeaderLength;
-	
-	//Differentiated Services Code Point (DSCP) => 6 bits
-	private byte dscpOrTypeOfService = 0;
-	
-	//Explicit Congestion Notification (ECN)
-	private byte ecn = 0;
-	
-	//The total length in bytes of this IP packet, including the IP header and data (TCP header/UDP + body)
-	private int totalLength = 0;
-	
-	//primarily used for uniquely identifying the group of fragments of a single IP datagram. 
-	private int identification = 0;
-	
-	//3 bits field used to control or identify fragments.
-	//bit 0: Reserved; must be zero
-	//bit 1: Don't Fragment (DF)
-	//bit 2: More Fragments (MF)
-	private byte flag = 0;
-	private boolean mayFragment;
-	private boolean lastFragment;
-	
-	// The fragment offset for this IP datagram.
-	private short fragmentOffset;
-	
-	//This field limits a datagram's lifetime
-	//It is specified in seconds, but time intervals less than 1 second are rounded up to 1
-	private byte timeToLive = 0;
-	
-	//TCP or UDP or other
-	private byte protocol = 0;
-	
-	//for error-checking of the header
-	private int headerChecksum = 0;
-	
-	private int sourceIP;
-	
-	private int destinationIP;
+    private byte ipVersion;
+    private byte headerLength;
+    private byte dscp;
+    private byte ecn;
+    private int totalLength;
+    private int identification;
+    private byte flag = 0;
+    private boolean mayFragment;
+    private boolean lastFragment;
+    private short fragmentOffset;
+    private byte timeToLive;
+    private byte protocol;
+    private int headerChecksum;
+    private int sourceIP;
+    private int destinationIP;
 
-	/**
-	 * create a new IPv4 Header
-	 * @param ipVersion the first header field in an IP packet. It is four-bit. For IPv4, this has a value of 4.
-	 * @param internetHeaderLength the second field (four bits) is the IP header length (from 20 to 60 bytes)
-	 * @param dscpOrTypeOfService type of service
-	 * @param ecn Explicit Congestion Notification
-	 * @param totalLength total length of this packet including header and body in bytes (max 35535).
-	 * @param identification primarily used for uniquely identifying the group of fragments of a single IP datagram
-	 * @param mayFragment bit number 1 of Flag. For DF (Don't Fragment)
-	 * @param lastFragment bit number 2 of Flag. For MF (More Fragment) 
-	 * @param fragmentOffset 13 bits long and specifies the offset of a particular fragment relative to the beginning of 
-	 * the original unfragmented IP datagram.
-	 * @param timeToLive 8 bits field for preventing datagrams from persisting.
-	 * @param protocol defines the protocol used in the data portion of the IP datagram
-	 * @param headerChecksum 16-bits field used for error-checking of the header
-	 * @param sourceIP IPv4 address of sender.
-	 * @param destinationIP IPv4 address of receiver.
-	 */
-	public IPv4Header(byte ipVersion, byte internetHeaderLength,
-					  byte dscpOrTypeOfService, byte ecn, int totalLength,
-					  int identification, boolean mayFragment,
-					  boolean lastFragment, short fragmentOffset,
-					  byte timeToLive, byte protocol, int headerChecksum,
-					  int sourceIP, int destinationIP){
-		this.ipVersion = ipVersion;
-		this.internetHeaderLength = internetHeaderLength;
-		this.dscpOrTypeOfService = dscpOrTypeOfService;
-		this.ecn = ecn;
-		this.totalLength = totalLength;
-		this.identification = identification;
-		this.mayFragment = mayFragment;
-		if(mayFragment){
-			this.flag |= 0x40;
-		}
-		this.lastFragment = lastFragment;
-		if(lastFragment){
-			this.flag |= 0x20;
-		}
-		this.fragmentOffset = fragmentOffset;
-		this.timeToLive = timeToLive;
-		this.protocol = protocol;
-		this.headerChecksum = headerChecksum;
-		this.sourceIP = sourceIP;
-		this.destinationIP = destinationIP;
-	}
+    /**
+     * create a new IPv4 Header
+     *
+     * @param ipVersion      the first header field in an IP packet. It is four-bit. For IPv4, this has a value of 4.
+     * @param headerLength   the second field (four bits) is the IP header length (from 20 to 60 bytes)
+     * @param dscp           type of service
+     * @param ecn            Explicit Congestion Notification
+     * @param totalLength    total length of this packet including header and body in bytes (max 35535).
+     * @param identification primarily used for uniquely identifying the group of fragments of a single IP datagram
+     * @param mayFragment    bit number 1 of Flag. For DF (Don't Fragment)
+     * @param lastFragment   bit number 2 of Flag. For MF (More Fragment)
+     * @param fragmentOffset 13 bits long and specifies the offset of a particular fragment relative to the beginning of
+     *                       the original unfragmented IP datagram.
+     * @param timeToLive     8 bits field for preventing datagrams from persisting.
+     * @param protocol       defines the protocol used in the data portion of the IP datagram
+     * @param headerChecksum 16-bits field used for error-checking of the header
+     * @param sourceIP       IPv4 address of sender.
+     * @param destinationIP  IPv4 address of receiver.
+     */
+    IPv4Header(byte ipVersion,
+               byte headerLength,
+               byte dscp,
+               byte ecn,
+               int totalLength,
+               int identification,
+               boolean mayFragment,
+               boolean lastFragment,
+               short fragmentOffset,
+               byte timeToLive,
+               byte protocol,
+               int headerChecksum,
+               int sourceIP,
+               int destinationIP) {
 
-	public byte getIpVersion() {
-		return ipVersion;
-	}
+        this.ipVersion = ipVersion;
+        this.headerLength = headerLength;
+        this.dscp = dscp;
+        this.ecn = ecn;
+        this.totalLength = totalLength;
+        this.identification = identification;
+        this.mayFragment = mayFragment;
 
-	byte getInternetHeaderLength() {
-		return internetHeaderLength;
-	}
+        if (mayFragment)
+            this.flag |= 0x40;
 
-	public byte getDscpOrTypeOfService() {
-		return dscpOrTypeOfService;
-	}
+        this.lastFragment = lastFragment;
 
-	byte getEcn() {
-		return ecn;
-	}
+        if (lastFragment)
+            this.flag |= 0x20;
 
-	/**
-	 * total length of this packet in bytes including IP Header and body(TCP/UDP header + data)
-	 * @return totalLength
-	 */
-	public int getTotalLength() {
-		return totalLength;
-	}
-	/**
-	 * total length of IP header in bytes.
-	 * @return IP Header total length
-	 */
-	public int getIPHeaderLength(){
-		return (internetHeaderLength * 4);
-	}
+        this.fragmentOffset = fragmentOffset;
+        this.timeToLive = timeToLive;
+        this.protocol = protocol;
+        this.headerChecksum = headerChecksum;
+        this.sourceIP = sourceIP;
+        this.destinationIP = destinationIP;
+    }
 
-	public int getIdentification() {
-		return identification;
-	}
+    public byte getIpVersion() {
+        return ipVersion;
+    }
 
-	public byte getFlag() {
-		return flag;
-	}
+    byte getHeaderLength() {
+        return headerLength;
+    }
 
-	public boolean isMayFragment() {
-		return mayFragment;
-	}
+    byte getDscp() {
+        return dscp;
+    }
 
-	public boolean isLastFragment() {
-		return lastFragment;
-	}
+    byte getEcn() {
+        return ecn;
+    }
 
-	public short getFragmentOffset() {
-		return fragmentOffset;
-	}
+    public int getTotalLength() {
+        return totalLength;
+    }
 
-	public byte getTimeToLive() {
-		return timeToLive;
-	}
+    public int getIPHeaderLength() {
+        return (headerLength * 4);
+    }
 
-	public byte getProtocol() {
-		return protocol;
-	}
+    public int getIdentification() {
+        return identification;
+    }
 
-	public int getHeaderChecksum() {
-		return headerChecksum;
-	}
+    public byte getFlag() {
+        return flag;
+    }
 
-	public int getSourceIP() {
-		return sourceIP;
-	}
+    public boolean isMayFragment() {
+        return mayFragment;
+    }
 
-	public int getDestinationIP() {
-		return destinationIP;
-	}
+    public boolean isLastFragment() {
+        return lastFragment;
+    }
 
-	public void setTotalLength(int totalLength) {
-		this.totalLength = totalLength;
-	}
+    public short getFragmentOffset() {
+        return fragmentOffset;
+    }
 
-	public void setIdentification(int identification) {
-		this.identification = identification;
-	}
+    public byte getTimeToLive() {
+        return timeToLive;
+    }
 
-	public void setMayFragment(boolean mayFragment) {
-		this.mayFragment = mayFragment;
-		if(mayFragment) {
-			this.flag |= 0x40;
-		} else {
-			this.flag &= 0xBF;
-		}
-	}
+    public byte getProtocol() {
+        return protocol;
+    }
 
-//	public void setLastFragment(boolean lastFragment) {
-//		this.lastFragment = lastFragment;
-//		if(lastFragment){
-//			this.flag |= 0x20;
-//		}else{
-//			this.flag &= 0xDF;
-//		}
-//	}
-//
-	public void setSourceIP(int sourceIP) {
-		this.sourceIP = sourceIP;
-	}
+    public int getHeaderChecksum() {
+        return headerChecksum;
+    }
 
-	public void setDestinationIP(int destinationIP) {
-		this.destinationIP = destinationIP;
-	}
+    public int getSourceIP() {
+        return sourceIP;
+    }
+
+    public int getDestinationIP() {
+        return destinationIP;
+    }
+
+    public void setTotalLength(int totalLength) {
+        this.totalLength = totalLength;
+    }
+
+    public void setIdentification(int identification) {
+        this.identification = identification;
+    }
+
+    public void setMayFragment(boolean mayFragment) {
+        this.mayFragment = mayFragment;
+        if (mayFragment) {
+            this.flag |= 0x40;
+        } else {
+            this.flag &= 0xBF;
+        }
+    }
+
+    public void setSourceIP(int sourceIP) {
+        this.sourceIP = sourceIP;
+    }
+
+    public void setDestinationIP(int destinationIP) {
+        this.destinationIP = destinationIP;
+    }
 }

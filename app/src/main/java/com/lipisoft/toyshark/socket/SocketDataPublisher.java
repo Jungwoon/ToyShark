@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.lipisoft.toyshark.socket;
 
 import java.util.ArrayList;
@@ -22,56 +22,60 @@ import android.util.Log;
 
 /**
  * Publish packet data to subscriber who implements interface IReceivePacket
+ *
  * @author Borey Sao
  * Date: June 15, 2014
  */
 public class SocketDataPublisher implements Runnable {
-	private static final String TAG = "SocketDataPublisher";
-	private List<IReceivePacket> subscribers;
-	private SocketData data;
-	private volatile boolean isShuttingDown = false;
+    private static final String TAG = "SocketDataPublisher";
+    private List<IReceivePacket> subscribers;
+    private SocketData data;
+    private volatile boolean isShuttingDown = false;
 
-	public SocketDataPublisher(){
-		data = SocketData.getInstance();
-		subscribers = new ArrayList<>();
-	}
+    public SocketDataPublisher() {
+        data = SocketData.getInstance();
+        subscribers = new ArrayList<>();
+    }
 
-	/**
-	 * register a subscriber who wants to receive packet data
-	 * @param subscriber a subscriber who wants to receive packet data
-	 */
-	public void subscribe(IReceivePacket subscriber){
-		if(!subscribers.contains(subscriber)){
-			subscribers.add(subscriber);
-		}
-	}
+    /**
+     * register a subscriber who wants to receive packet data
+     *
+     * @param subscriber a subscriber who wants to receive packet data
+     */
+    public void subscribe(IReceivePacket subscriber) {
+        if (!subscribers.contains(subscriber)) {
+            subscribers.add(subscriber);
+        }
+    }
 
-	@Override
-	public void run() {
-		Log.d(TAG,"BackgroundWriter starting...");
-		
-		while(!isShuttingDown()) {
-			byte[] packetData = data.getData();
-			if(packetData != null) {
-				for(IReceivePacket subscriber: subscribers){
-					subscriber.receive(packetData);
-				}
-			} else {
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		Log.d(TAG,"BackgroundWriter ended");
-	}
-	private boolean isShuttingDown() {
-		return isShuttingDown;
-	}
-	public void setShuttingDown(boolean shuttingDown) {
-		this.isShuttingDown = shuttingDown;
-	}
+    @Override
+    public void run() {
+        Log.d(TAG, "BackgroundWriter starting...");
 
-	
+        while (!isShuttingDown()) {
+            byte[] packetData = data.getData();
+            if (packetData != null) {
+                for (IReceivePacket subscriber : subscribers) {
+                    subscriber.receive(packetData);
+                }
+            } else {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        Log.d(TAG, "BackgroundWriter ended");
+    }
+
+    private boolean isShuttingDown() {
+        return isShuttingDown;
+    }
+
+    public void setShuttingDown(boolean shuttingDown) {
+        this.isShuttingDown = shuttingDown;
+    }
+
+
 }

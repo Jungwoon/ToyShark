@@ -12,17 +12,17 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.lipisoft.toyshark;
 
 import java.io.IOException;
 
 /**
- * 
  * @author Borey Sao
  * Date: May 22, 2014
  */
 public interface IClientPacketWriter {
-	void write(byte[] data) throws IOException;
-	void write(byte[] data, int offset, int count) throws IOException;
+    void write(byte[] data) throws IOException;
+
+    void write(byte[] data, int offset, int count) throws IOException;
 }

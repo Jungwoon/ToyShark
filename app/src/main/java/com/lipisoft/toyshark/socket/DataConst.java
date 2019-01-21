@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.lipisoft.toyshark.socket;
 
 /**
@@ -20,5 +20,5 @@ package com.lipisoft.toyshark.socket;
  * Date: June 2, 2014
  */
 public class DataConst {
-	public static final int MAX_RECEIVE_BUFFER_SIZE = 65535;
+    public static final int MAX_RECEIVE_BUFFER_SIZE = 65535;
 }

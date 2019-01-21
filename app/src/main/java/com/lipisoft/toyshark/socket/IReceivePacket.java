@@ -1,5 +1,5 @@
 package com.lipisoft.toyshark.socket;
 
 public interface IReceivePacket {
-	void receive(byte[] packet);
+    void receive(byte[] packet);
 }

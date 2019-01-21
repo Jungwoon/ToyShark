@@ -15,7 +15,6 @@
 */
 package com.lipisoft.toyshark;
 
-import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -35,9 +34,13 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 
+import com.lipisoft.toyshark.list.PacketListAdapter;
+
 import java.net.NetworkInterface;
 import java.util.Collections;
 import java.util.List;
+
+import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
 public class MainActivity extends AppCompatActivity {
 	private static String TAG = "MainActivity";
@@ -52,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
 		recyclerView.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
 		recyclerView.setHasFixedSize(true);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
 		final PacketListAdapter adapter = new PacketListAdapter(PacketManager.INSTANCE.getList());
 		PacketManager.INSTANCE.setAdapter(adapter);
 		recyclerView.setAdapter(adapter);
@@ -60,20 +64,17 @@ public class MainActivity extends AppCompatActivity {
 	}
 
 	void checkRuntimePermission() {
-		int permission = ContextCompat.checkSelfPermission(this,
-				Manifest.permission.WRITE_EXTERNAL_STORAGE);
+		int permission = ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE);
 		if (permission != PackageManager.PERMISSION_GRANTED) {
-			if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-					Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+			if (ActivityCompat.shouldShowRequestPermissionRationale(this, WRITE_EXTERNAL_STORAGE)) {
 				// TODO inform the user to ask runtime permission
 				Log.d(TAG, "explains permission is needed.");
 			} else {
 				ActivityCompat.requestPermissions(this,
-						new String[]{ Manifest.permission.WRITE_EXTERNAL_STORAGE },
-						REQUEST_WRITE_EXTERNAL_STORAGE);
+						new String[]{ WRITE_EXTERNAL_STORAGE }, REQUEST_WRITE_EXTERNAL_STORAGE);
 			}
 		} else {
-			if (networkAndAirplaneModeCheck())
+			if (isConnectedToInternet())
 				startVPN();
 			else {
 				showInfoDialog(getResources().getString(R.string.app_name),
@@ -87,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
 		switch (requestCode) {
 			case REQUEST_WRITE_EXTERNAL_STORAGE:
 				if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-					if (networkAndAirplaneModeCheck()) {
+					if (isConnectedToInternet()) {
 						startVPN();
 					} else {
 						showInfoDialog(getResources().getString(R.string.app_name),
@@ -192,34 +193,6 @@ public class MainActivity extends AppCompatActivity {
 				.show();
 	}
 
-	@Override
-	protected void onDestroy() {
-		super.onDestroy();
-	}
-
-	@Override
-	protected void onPause() {
-		super.onPause();
-	}
-
-	@Override
-	protected void onStop() {
-		Log.i(TAG, "onStop()");
-		super.onStop();
-	}
-
-	@Override
-	protected void onResume() {
-		Log.i(TAG, "onResume");
-		super.onResume();
-	}
-
-	@Override
-	public void onBackPressed() {
-		Log.i(TAG, "onBackPressed");
-		super.onBackPressed();
-	}
-
 	/** check whether network is connected or not
 	 *  @return boolean
 	 */
@@ -227,21 +200,9 @@ public class MainActivity extends AppCompatActivity {
 		ConnectivityManager connectivity = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 		if (connectivity != null) {
 			NetworkInfo networkInfo = connectivity.getActiveNetworkInfo();
-			if (networkInfo != null && networkInfo.isConnected()) {
-				return true;
-			}
+			return networkInfo != null && networkInfo.isConnected();
 		}
 		return false;
 	}
 
-	private boolean networkAndAirplaneModeCheck() {
-//		if (!isConnectedToInternet()) {
-//			final String title = "ToyShark";
-//			final String message = "No network connection in your phone, Connect to network and start again";
-//			showInfoDialog(title, message);
-//			return false;
-//		}
-//		return true;
-		return isConnectedToInternet();
-	}
 }

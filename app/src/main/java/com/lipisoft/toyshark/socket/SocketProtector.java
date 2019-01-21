@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package com.lipisoft.toyshark.socket;
 
@@ -21,42 +21,48 @@ import java.net.Socket;
 
 
 /**
- * Singleton class that is created in child class of VpnService which implement IProtectSocket, 
+ * Singleton class that is created in child class of VpnService which implement IProtectSocket,
  * then this class is used everywhere else that need to protect socket from going through VPN interface.
+ *
  * @author Borey Sao
  * Date: June 1, 2014
  */
 public class SocketProtector {
-	private static final Object synObject = new Object();
-	private static volatile SocketProtector instance = null;
-	private IProtectSocket protector = null;
+    private static final Object synObject = new Object();
+    private static volatile SocketProtector instance = null;
+    private IProtectSocket protector = null;
 
-	public static SocketProtector getInstance(){
-		if(instance == null){
-			synchronized(synObject){
-				if(instance == null){
-					instance = new SocketProtector();
-				}
-			}
-		}
-		return instance;
-	}
-	/**
-	 * set class that implement IProtectSocket if only if it was never set before.
-	 * @param protector ProtectSocket
-	 */
-	public void setProtector(IProtectSocket protector){
-		if(this.protector == null){
-			this.protector = protector;
-		}
-	}
-	public void protect(Socket socket){
-		protector.protectSocket(socket);
-	}
-	public void protect(int socket){
-		protector.protectSocket(socket);
-	}
-	public void protect(DatagramSocket socket){
-		protector.protectSocket(socket);
-	}
+    public static SocketProtector getInstance() {
+        if (instance == null) {
+            synchronized (synObject) {
+                if (instance == null) {
+                    instance = new SocketProtector();
+                }
+            }
+        }
+        return instance;
+    }
+
+    /**
+     * set class that implement IProtectSocket if only if it was never set before.
+     *
+     * @param protector ProtectSocket
+     */
+    public void setProtector(IProtectSocket protector) {
+        if (this.protector == null) {
+            this.protector = protector;
+        }
+    }
+
+    public void protect(Socket socket) {
+        protector.protectSocket(socket);
+    }
+
+    public void protect(int socket) {
+        protector.protectSocket(socket);
+    }
+
+    public void protect(DatagramSocket socket) {
+        protector.protectSocket(socket);
+    }
 }

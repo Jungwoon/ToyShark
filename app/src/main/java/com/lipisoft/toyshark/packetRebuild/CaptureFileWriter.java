@@ -13,17 +13,16 @@ import java.io.IOException;
  * @author roni bar yanai
  *
  */
-public interface CaptureFileWriter 
-{
+public interface CaptureFileWriter {
 	/**
 	 * write packet to file.
-	 * @param thepkt - packet as byte array
+	 * @param packet - packet as byte array
 	 * @param time - time in nano seconds.
 	 * @return true for success.
 	 * @throws IOException
 	 */
-	public boolean addPacket(byte[] thepkt,long time) throws IOException;
-	
+
+	boolean addPacket(byte[] packet, long time) throws IOException;
 	
 	/**
 	 * close the file, make sure data flushed to disk.
@@ -31,5 +30,5 @@ public interface CaptureFileWriter
 	 *   to use the created file in the code)
 	 * @throws IOException 
 	 */
-	public void close() throws IOException;
+	void close() throws IOException;
 }
