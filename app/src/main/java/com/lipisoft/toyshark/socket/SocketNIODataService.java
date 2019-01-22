@@ -180,8 +180,10 @@ public class SocketNIODataService implements Runnable {
     }
 
     private void processSelector(SelectionKey selectionKey, Session session) {
-        String sessionKey = SessionManager.INSTANCE.createKey(session.getDestIp(),
-                session.getDestPort(), session.getSourceIp(),
+        String sessionKey = SessionManager.INSTANCE.createKey(
+                session.getDestIp(),
+                session.getDestPort(),
+                session.getSourceIp(),
                 session.getSourcePort());
         // tcp has PSH flag when data is ready for sending, UDP does not have this
         if (selectionKey.isValid() && selectionKey.isWritable()

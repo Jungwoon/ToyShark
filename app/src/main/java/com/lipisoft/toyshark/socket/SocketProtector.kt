@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.lipisoft.toyshark.socket;
+package com.lipisoft.toyshark.socket
 
-import java.net.DatagramSocket;
-import java.net.Socket;
+import java.net.DatagramSocket
+import java.net.Socket
 
 
 /**
@@ -27,42 +27,47 @@ import java.net.Socket;
  * @author Borey Sao
  * Date: June 1, 2014
  */
-public class SocketProtector {
-    private static final Object synObject = new Object();
-    private static volatile SocketProtector instance = null;
-    private IProtectSocket protector = null;
+class SocketProtector {
 
-    public static SocketProtector getInstance() {
-        if (instance == null) {
-            synchronized (synObject) {
-                if (instance == null) {
-                    instance = new SocketProtector();
+    companion object {
+        private val synObject = Any()
+        @Volatile
+        private var instance: SocketProtector? = null
+
+        fun getInstance(): SocketProtector? {
+            if (instance == null) {
+                synchronized(synObject) {
+                    if (instance == null) {
+                        instance = SocketProtector()
+                    }
                 }
             }
+            return instance
         }
-        return instance;
     }
+
+    private var protector: IProtectSocket? = null
 
     /**
      * set class that implement IProtectSocket if only if it was never set before.
      *
      * @param protector ProtectSocket
      */
-    public void setProtector(IProtectSocket protector) {
+    fun setProtector(protector: IProtectSocket) {
         if (this.protector == null) {
-            this.protector = protector;
+            this.protector = protector
         }
     }
 
-    public void protect(Socket socket) {
-        protector.protectSocket(socket);
+    fun protect(socket: Socket) {
+        protector!!.protectSocket(socket)
     }
 
-    public void protect(int socket) {
-        protector.protectSocket(socket);
+    fun protect(socket: Int) {
+        protector!!.protectSocket(socket)
     }
 
-    public void protect(DatagramSocket socket) {
-        protector.protectSocket(socket);
+    fun protect(socket: DatagramSocket) {
+        protector!!.protectSocket(socket)
     }
 }

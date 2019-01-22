@@ -4,18 +4,13 @@ import android.support.annotation.NonNull;
 
 import com.lipisoft.toyshark.session.Session;
 import com.lipisoft.toyshark.session.SessionManager;
-import com.lipisoft.toyshark.socket.IProtectSocket;
-import com.lipisoft.toyshark.socket.SocketProtector;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
-import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.spi.AbstractSelectableChannel;
@@ -27,26 +22,26 @@ import static org.junit.Assert.assertNull;
 
 @RunWith(RobolectricTestRunner.class)
 public class SessionManagerTest {
-    @Before
-    public void setUp() throws Exception {
-        IProtectSocket protectSocket = new IProtectSocket() {
-            @Override
-            public void protectSocket(Socket socket) {
-
-            }
-
-            @Override
-            public void protectSocket(int socket) {
-
-            }
-
-            @Override
-            public void protectSocket(DatagramSocket socket) {
-
-            }
-        };
-        SocketProtector.getInstance().setProtector(protectSocket);
-    }
+//    @Before
+//    public void setUp() throws Exception {
+//        IProtectSocket protectSocket = new IProtectSocket() {
+//            @Override
+//            public void protectSocket(Socket socket) {
+//
+//            }
+//
+//            @Override
+//            public void protectSocket(int socket) {
+//
+//            }
+//
+//            @Override
+//            public void protectSocket(DatagramSocket socket) {
+//
+//            }
+//        };
+//        SocketProtector.Companion.getInstance().setProtector(protectSocket);
+//    }
 
     @After
     public void tearDown() throws Exception {

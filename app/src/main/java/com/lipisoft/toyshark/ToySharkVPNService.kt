@@ -225,7 +225,7 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
     override fun run() {
         Log.i(TAG, "running vpnService")
         val protector = SocketProtector.getInstance()
-        protector.setProtector(this)
+        protector!!.setProtector(this)
 
         try {
             if (startVpnService()) {
