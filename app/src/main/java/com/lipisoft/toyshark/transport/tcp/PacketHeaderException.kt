@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package com.lipisoft.toyshark.transport.tcp;
+package com.lipisoft.toyshark.transport.tcp
 
 /**
  * @author Borey Sao
  * Date: May 7, 2014
  */
-public class PacketHeaderException extends Exception {
-    private static final long serialVersionUID = 1L;
-
-    public PacketHeaderException(String message) {
-        super(message);
+class PacketHeaderException(message: String) : Exception(message) {
+    companion object {
+        private const val serialVersionUID = 1L
     }
 }

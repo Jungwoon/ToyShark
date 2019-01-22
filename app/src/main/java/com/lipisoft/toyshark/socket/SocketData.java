@@ -12,35 +12,36 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.lipisoft.toyshark.socket;
 
 import java.util.LinkedList;
 import java.util.Queue;
 
 /**
- * Singleton data structure for storing packet data in queue. Data is pushed into this queue from 
+ * Singleton data structure for storing packet data in queue. Data is pushed into this queue from
  * VpnService as well as background worker that pull data from remote socket.
+ *
  * @author Borey Sao
  * Date: May 12, 2014
  */
 public class SocketData {
-	private static final SocketData instance = new SocketData();
-	private Queue<byte[]> data;
+    private static final SocketData instance = new SocketData();
+    private Queue<byte[]> data;
 
-	public static SocketData getInstance(){
-		return instance;
-	}
+    public static SocketData getInstance() {
+        return instance;
+    }
 
-	private SocketData() {
-		data = new LinkedList<>();
-	}
+    private SocketData() {
+        data = new LinkedList<>();
+    }
 
-	public synchronized void addData(byte[] packet) {
-		data.add(packet);
-	}
+    public synchronized void addData(byte[] packet) {
+        data.add(packet);
+    }
 
-	public synchronized byte[] getData() {
-			return data.poll();
-	}
+    public synchronized byte[] getData() {
+        return data.poll();
+    }
 }

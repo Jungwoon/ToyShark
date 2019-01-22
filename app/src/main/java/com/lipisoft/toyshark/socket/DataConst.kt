@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.lipisoft.toyshark.socket;
+package com.lipisoft.toyshark.socket
 
 /**
  * @author Borey Sao
  * Date: June 2, 2014
  */
-public class DataConst {
-    public static final int MAX_RECEIVE_BUFFER_SIZE = 65535;
+object DataConst {
+    const val MAX_RECEIVE_BUFFER_SIZE = 65535
 }
