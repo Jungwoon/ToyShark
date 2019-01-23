@@ -35,10 +35,10 @@ public class PCapPacketHeader {
     public byte[] getAsByteArray() {
         byte[] tmp = new byte[16];
 
-        ByteUtils.setLittleIndianInBytesArray(tmp, 0, pcapRead32(uInt32timeValSec), 4);
-        ByteUtils.setLittleIndianInBytesArray(tmp, 4, pcapRead32(uInt32timeValMsec), 4);
-        ByteUtils.setLittleIndianInBytesArray(tmp, 8, pcapRead32(uInt32CapLen), 4);
-        ByteUtils.setLittleIndianInBytesArray(tmp, 12, pcapRead32(uInt32PktLen), 4);
+        ByteUtils.Companion.setLittleIndianInBytesArray(tmp, 0, pcapRead32(uInt32timeValSec), 4);
+        ByteUtils.Companion.setLittleIndianInBytesArray(tmp, 4, pcapRead32(uInt32timeValMsec), 4);
+        ByteUtils.Companion.setLittleIndianInBytesArray(tmp, 8, pcapRead32(uInt32CapLen), 4);
+        ByteUtils.Companion.setLittleIndianInBytesArray(tmp, 12, pcapRead32(uInt32PktLen), 4);
 
         return tmp;
     }

@@ -58,13 +58,13 @@ public class PCapFileHeader {
     public void readHeader(InputStream in) throws IOException {
         byte[] tmp = new byte[24];
         in.read(tmp);
-        uInt32MagicNum = ByteUtils.getByteNetOrderTo_unit32(tmp, 0);
-        uShort16VersionMajor = ByteUtils.getByteNetOrderTo_unit16(tmp, 4);
-        uShort16VersionMinor = ByteUtils.getByteNetOrderTo_unit16(tmp, 6);
-        uInt32ThisTimeZone = ByteUtils.getByteNetOrderTo_unit32(tmp, 8);
-        uInt32Sigfigs = ByteUtils.getByteNetOrderTo_unit32(tmp, 12);
-        uInt32snapLen = ByteUtils.getByteNetOrderTo_unit32(tmp, 16);
-        uInt32LinkType = ByteUtils.getByteNetOrderTo_unit32(tmp, 20);
+        uInt32MagicNum = ByteUtils.Companion.getByteNetOrderTo_unit32(tmp, 0);
+        uShort16VersionMajor = ByteUtils.Companion.getByteNetOrderTo_unit16(tmp, 4);
+        uShort16VersionMinor = ByteUtils.Companion.getByteNetOrderTo_unit16(tmp, 6);
+        uInt32ThisTimeZone = ByteUtils.Companion.getByteNetOrderTo_unit32(tmp, 8);
+        uInt32Sigfigs = ByteUtils.Companion.getByteNetOrderTo_unit32(tmp, 12);
+        uInt32snapLen = ByteUtils.Companion.getByteNetOrderTo_unit32(tmp, 16);
+        uInt32LinkType = ByteUtils.Companion.getByteNetOrderTo_unit32(tmp, 20);
 
         if (uInt32MagicNum == MAGIC_NUMBER_DONT_FLIP) {
             isFlip = false;
@@ -91,13 +91,13 @@ public class PCapFileHeader {
      */
     public byte[] getAsByteArray() {
         byte[] tmp = new byte[24];
-        ByteUtils.setBigIndianInBytesArray(tmp, 0, uInt32MagicNum, 4);
-        ByteUtils.setBigIndianInBytesArray(tmp, 4, uShort16VersionMajor, 2);
-        ByteUtils.setBigIndianInBytesArray(tmp, 6, uShort16VersionMinor, 2);
-        ByteUtils.setBigIndianInBytesArray(tmp, 8, uInt32ThisTimeZone, 4);
-        ByteUtils.setBigIndianInBytesArray(tmp, 12, uInt32Sigfigs, 4);
-        ByteUtils.setBigIndianInBytesArray(tmp, 16, uInt32snapLen, 4);
-        ByteUtils.setBigIndianInBytesArray(tmp, 20, uInt32LinkType, 4);
+        ByteUtils.Companion.setBigIndianInBytesArray(tmp, 0, uInt32MagicNum, 4);
+        ByteUtils.Companion.setBigIndianInBytesArray(tmp, 4, uShort16VersionMajor, 2);
+        ByteUtils.Companion.setBigIndianInBytesArray(tmp, 6, uShort16VersionMinor, 2);
+        ByteUtils.Companion.setBigIndianInBytesArray(tmp, 8, uInt32ThisTimeZone, 4);
+        ByteUtils.Companion.setBigIndianInBytesArray(tmp, 12, uInt32Sigfigs, 4);
+        ByteUtils.Companion.setBigIndianInBytesArray(tmp, 16, uInt32snapLen, 4);
+        ByteUtils.Companion.setBigIndianInBytesArray(tmp, 20, uInt32LinkType, 4);
         return tmp;
     }
 
