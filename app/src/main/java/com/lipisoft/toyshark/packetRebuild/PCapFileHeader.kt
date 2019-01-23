@@ -48,5 +48,4 @@ class PCapFileHeader {
                 link type : $uInt32LinkType
                 """)
     }
-
 }
