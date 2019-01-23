@@ -186,7 +186,7 @@ public class SessionHandler {
         if (ipHeader.getProtocol() == 6) {
             transportHeader = TCPPacketFactory.INSTANCE.createTCPHeader(stream);
         } else if (ipHeader.getProtocol() == 17) {
-            transportHeader = UDPPacketFactory.createUDPHeader(stream);
+            transportHeader = UDPPacketFactory.INSTANCE.createUDPHeader(stream);
         } else {
             Log.e(TAG, "******===> Unsupported protocol: " + ipHeader.getProtocol());
             return;

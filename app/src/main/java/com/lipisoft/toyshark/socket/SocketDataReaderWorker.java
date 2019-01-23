@@ -230,7 +230,7 @@ class SocketDataReaderWorker implements Runnable {
                     //create UDP packet
                     byte[] data = new byte[len];
                     System.arraycopy(buffer.array(), 0, data, 0, len);
-                    byte[] packetData = UDPPacketFactory.createResponsePacket(
+                    byte[] packetData = UDPPacketFactory.INSTANCE.createResponsePacket(
                             session.getLastIpHeader(), session.getLastUdpHeader(), data);
                     //write to client
                     writer.write(packetData);
@@ -243,7 +243,7 @@ class SocketDataReaderWorker implements Runnable {
                     try {
                         final ByteBuffer stream = ByteBuffer.wrap(packetData);
                         IPv4Header ip = IPPacketFactory.createIPv4Header(stream);
-                        UDPHeader udp = UDPPacketFactory.createUDPHeader(stream);
+                        UDPHeader udp = UDPPacketFactory.INSTANCE.createUDPHeader(stream);
                         String str = PacketUtil.getUDPoutput(ip, udp);
                         Log.d(TAG, "++++++ SD: packet sending to client ++++++++");
                         Log.i(TAG, "got response time: " + responseTime);
