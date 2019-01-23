@@ -180,7 +180,7 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
             dataService!!.setShutdown(true)
 
         if (socketDataPublisher != null)
-            socketDataPublisher!!.setShuttingDown(true)
+            socketDataPublisher!!.isShuttingDown = true
 
         //	closeTraceFiles();
 

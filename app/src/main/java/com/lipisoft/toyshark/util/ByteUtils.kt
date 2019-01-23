@@ -284,11 +284,11 @@ class ByteUtils {
          *
          * @param toPutIn    - the array to put in
          * @param startIndex - start index of the num
-         * @param theNumber  - the number
+         * @param number  - the number
          * @param len        - the number size in bytes.
          */
-        fun setLittleIndianInBytesArray(toPutIn: ByteArray, startIndex: Int, theNumber: Long, len: Int) {
-            var theNumber = theNumber
+        fun setLittleIndianInBytesArray(toPutIn: ByteArray, startIndex: Int, number: Long, len: Int) {
+            var theNumber = number
             for (i in 0 until len) {
                 toPutIn[i + startIndex] = (theNumber % 256).toByte()
                 theNumber /= 256

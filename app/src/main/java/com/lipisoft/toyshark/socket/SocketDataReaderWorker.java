@@ -103,8 +103,8 @@ class SocketDataReaderWorker implements Runnable {
             do {
                 if (!session.isClientWindowFull()) {
                     len = channel.read(buffer);
-                    if (len > 0) { //-1 mean it reach the end of stream
-                        //Log.d(TAG,"SocketDataService received "+len+" from remote server: "+name);
+                    if (len > 0) {
+                        // -1 mean it reach the end of stream
                         sendToRequester(buffer, len, session);
                         buffer.clear();
                     } else if (len == -1) {
@@ -145,7 +145,6 @@ class SocketDataReaderWorker implements Runnable {
         byte[] data = new byte[dataSize];
         System.arraycopy(buffer.array(), 0, data, 0, dataSize);
         session.addReceivedData(data);
-        //Log.d(TAG,"DataService added "+data.length+" to session. session.getReceivedDataSize(): "+session.getReceivedDataSize());
         //pushing all data to vpn client
         while (session.hasReceivedData()) {
             pushDataToClient(session);
@@ -177,7 +176,6 @@ class SocketDataReaderWorker implements Runnable {
         if (packetBody != null && packetBody.length > 0) {
             long unAck = session.getSendNext();
             long nextUnAck = session.getSendNext() + packetBody.length;
-            //Log.d(TAG,"sending vpn client body len: "+packetBody.length+", current seq: "+unAck+", next seq: "+nextUnAck);
             session.setSendNext(nextUnAck);
             //we need this data later on for retransmission
             session.setUnackData(packetBody);
