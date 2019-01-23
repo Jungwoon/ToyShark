@@ -115,7 +115,7 @@ public class SocketNIODataService implements Runnable {
         }
 
         if (!session.isConnected() && key.isConnectable()) {
-            String ips = PacketUtil.intToIPAddress(session.getDestIp());
+            String ips = PacketUtil.INSTANCE.intToIPAddress(session.getDestIp());
             int port = session.getDestPort();
             SocketAddress address = new InetSocketAddress(ips, port);
             try {
@@ -145,7 +145,7 @@ public class SocketNIODataService implements Runnable {
         }
 
         if (!session.isConnected() && key.isConnectable()) {
-            String ips = PacketUtil.intToIPAddress(session.getDestIp());
+            String ips = PacketUtil.INSTANCE.intToIPAddress(session.getDestIp());
             int port = session.getDestPort();
             SocketAddress address = new InetSocketAddress(ips, port);
             Log.d(TAG, "connecting to remote tcp server: " + ips + ":" + port);
