@@ -157,7 +157,7 @@ private constructor(file: File?, append: Boolean) : CaptureFileWriter() {
         outputStream!!.write(pCapPacketHeader.asByteArray)
 
         // added to write fake ethernet header
-        outputStream!!.write(StubbedEthernetHeader.getEthernetHeader())
+        outputStream!!.write(StubbedEthernetHeader.ethernetHeader)
 
         outputStream!!.write(packet, offset, length)
 
