@@ -127,7 +127,7 @@ public class SocketDataWriterWorker implements Runnable {
             Log.e(TAG, "Error writing to server: " + e.getMessage());
 
             //close connection with vpn client
-            byte[] rstData = TCPPacketFactory.createRstData(
+            byte[] rstData = TCPPacketFactory.INSTANCE.createRstData(
                     session.getLastIpHeader(), session.getLastTcpHeader(), 0);
             try {
                 writer.write(rstData);

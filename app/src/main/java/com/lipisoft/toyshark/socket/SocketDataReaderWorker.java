@@ -183,7 +183,7 @@ class SocketDataReaderWorker implements Runnable {
             session.setUnackData(packetBody);
             session.setResendPacketCounter(0);
 
-            byte[] data = TCPPacketFactory.createResponsePacketData(ipHeader,
+            byte[] data = TCPPacketFactory.INSTANCE.createResponsePacketData(ipHeader,
                     tcpheader, packetBody, session.hasReceivedLastSegment(),
                     session.getRecSequence(), unAck,
                     session.getTimestampSender(), session.getTimestampReplyTo());
@@ -199,7 +199,7 @@ class SocketDataReaderWorker implements Runnable {
     private void sendFin(Session session) {
         final IPv4Header ipHeader = session.getLastIpHeader();
         final TCPHeader tcpheader = session.getLastTcpHeader();
-        final byte[] data = TCPPacketFactory.createFinData(ipHeader, tcpheader,
+        final byte[] data = TCPPacketFactory.INSTANCE.createFinData(ipHeader, tcpheader,
                 session.getSendNext(), session.getRecSequence(),
                 session.getTimestampSender(), session.getTimestampReplyTo());
         try {

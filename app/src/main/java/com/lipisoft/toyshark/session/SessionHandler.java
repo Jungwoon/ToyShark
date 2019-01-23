@@ -184,7 +184,7 @@ public class SessionHandler {
 
         final ITransportHeader transportHeader;
         if (ipHeader.getProtocol() == 6) {
-            transportHeader = TCPPacketFactory.createTCPHeader(stream);
+            transportHeader = TCPPacketFactory.INSTANCE.createTCPHeader(stream);
         } else if (ipHeader.getProtocol() == 17) {
             transportHeader = UDPPacketFactory.createUDPHeader(stream);
         } else {
@@ -204,7 +204,7 @@ public class SessionHandler {
     }
 
     private void sendRstPacket(IPv4Header ip, TCPHeader tcp, int dataLength) {
-        byte[] data = TCPPacketFactory.createRstData(ip, tcp, dataLength);
+        byte[] data = TCPPacketFactory.INSTANCE.createRstData(ip, tcp, dataLength);
         try {
             writer.write(data);
             packetData.addData(data);
@@ -217,7 +217,7 @@ public class SessionHandler {
     }
 
     private void sendLastAck(IPv4Header ip, TCPHeader tcp) {
-        byte[] data = TCPPacketFactory.createResponseAckData(ip, tcp, tcp.getSequenceNumber() + 1);
+        byte[] data = TCPPacketFactory.INSTANCE.createResponseAckData(ip, tcp, tcp.getSequenceNumber() + 1);
         try {
             writer.write(data);
             packetData.addData(data);
@@ -232,7 +232,7 @@ public class SessionHandler {
     private void ackFinAck(IPv4Header ip, TCPHeader tcp, Session session) {
         long ack = tcp.getSequenceNumber() + 1;
         long seq = tcp.getAckNumber();
-        byte[] data = TCPPacketFactory.createFinAckData(ip, tcp, ack, seq, true, true);
+        byte[] data = TCPPacketFactory.INSTANCE.createFinAckData(ip, tcp, ack, seq, true, true);
         try {
             writer.write(data);
             packetData.addData(data);
@@ -250,7 +250,7 @@ public class SessionHandler {
     private void sendFinAck(IPv4Header ip, TCPHeader tcp, Session session) {
         final long ack = tcp.getSequenceNumber();
         final long seq = tcp.getAckNumber();
-        final byte[] data = TCPPacketFactory.createFinAckData(ip, tcp, ack, seq, true, false);
+        final byte[] data = TCPPacketFactory.INSTANCE.createFinAckData(ip, tcp, ack, seq, true, false);
         final ByteBuffer stream = ByteBuffer.wrap(data);
         try {
             writer.write(data);
@@ -266,7 +266,7 @@ public class SessionHandler {
             TCPHeader vpntcp = null;
             try {
                 if (vpnip != null)
-                    vpntcp = TCPPacketFactory.createTCPHeader(stream);
+                    vpntcp = TCPPacketFactory.INSTANCE.createTCPHeader(stream);
             } catch (PacketHeaderException e) {
                 e.printStackTrace();
             }
@@ -306,7 +306,7 @@ public class SessionHandler {
         long acknumber = session.getRecSequence() + acceptedDataLength;
         Log.d(TAG, "sent ack, ack# " + session.getRecSequence() + " + " + acceptedDataLength + " = " + acknumber);
         session.setRecSequence(acknumber);
-        byte[] data = TCPPacketFactory.createResponseAckData(ipheader, tcpheader, acknumber);
+        byte[] data = TCPPacketFactory.INSTANCE.createResponseAckData(ipheader, tcpheader, acknumber);
         try {
             writer.write(data);
             packetData.addData(data);
@@ -319,7 +319,7 @@ public class SessionHandler {
         long ackNumber = tcpheader.getSequenceNumber() + acceptedDataLength;
         Log.d(TAG, "sent ack, ack# " + tcpheader.getSequenceNumber() +
                 " + " + acceptedDataLength + " = " + ackNumber);
-        byte[] data = TCPPacketFactory.createResponseAckData(ipHeader, tcpheader, ackNumber);
+        byte[] data = TCPPacketFactory.INSTANCE.createResponseAckData(ipHeader, tcpheader, ackNumber);
         try {
             writer.write(data);
             packetData.addData(data);
@@ -381,7 +381,7 @@ public class SessionHandler {
      */
     private void replySynAck(IPv4Header ip, TCPHeader tcp) {
         ip.setIdentification(0);
-        Packet packet = TCPPacketFactory.createSynAckPacketData(ip, tcp);
+        Packet packet = TCPPacketFactory.INSTANCE.createSynAckPacketData(ip, tcp);
 
         TCPHeader tcpheader = (TCPHeader) packet.getTransportHeader();
 
