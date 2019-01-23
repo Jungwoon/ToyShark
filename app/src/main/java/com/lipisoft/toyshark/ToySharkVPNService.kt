@@ -379,7 +379,7 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
         val packet = ByteBuffer.allocate(MAX_PACKET_LEN)
         val clientPacketWriter = ClientPacketWriterImpl(clientWriter)
 
-        val handler = SessionHandler.getInstance()
+        val handler = SessionHandler.instance
         handler.setWriter(clientPacketWriter)
 
         // background task for non-blocking socket
