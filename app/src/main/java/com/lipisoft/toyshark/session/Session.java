@@ -55,9 +55,6 @@ public class Session {
     private int sendWindow = 0; //window = windowsize x windowscale
     private int sendWindowScale = 0;
 
-    // track how many byte of data has been sent since last ACK from client
-    private volatile int sendAmountSinceLastAck = 0;
-
     // sent by client during SYN inside tcp options
     private int maxSegmentSize = 0;
 
@@ -65,10 +62,10 @@ public class Session {
     private boolean isConnected = false;
 
     // receiving buffer for storing data from remote host
-    private ByteArrayOutputStream receivingStream;
+    private ByteArrayOutputStream receivingStream = new ByteArrayOutputStream();
 
     // sending buffer for storing data from vpn client to be send to destination host
-    private ByteArrayOutputStream sendingStream;
+    private ByteArrayOutputStream sendingStream = new ByteArrayOutputStream();
 
     private boolean hasReceivedLastSegment = false;
 
@@ -97,13 +94,11 @@ public class Session {
 
     public long connectionStartTime = 0;
 
-    public Session(int sourceIp, int sourcePort, int destinationIp, int destinationPort) {
-        receivingStream = new ByteArrayOutputStream();
-        sendingStream = new ByteArrayOutputStream();
+    public Session(int sourceIp, int sourcePort, int destIp, int destPort) {
         this.sourceIp = sourceIp;
         this.sourcePort = sourcePort;
-        this.destIp = destinationIp;
-        this.destPort = destinationPort;
+        this.destIp = destIp;
+        this.destPort = destPort;
     }
 
     /**
@@ -112,8 +107,8 @@ public class Session {
      * @return boolean
      */
     public boolean isClientWindowFull() {
-        return (sendWindow > 0 && sendAmountSinceLastAck >= sendWindow) ||
-                (sendWindow == 0 && sendAmountSinceLastAck > 65535);
+        // track how many byte of data has been sent since last ACK from client
+        return false;
     }
 
     /**
@@ -249,18 +244,12 @@ public class Session {
     }
 
     void setSendWindowSizeAndScale(int sendWindowSize, int sendWindowScale) {
-        int sendWindowSize1 = sendWindowSize;
         this.sendWindowScale = sendWindowScale;
         this.sendWindow = sendWindowSize * sendWindowScale;
     }
 
     int getSendWindowScale() {
         return sendWindowScale;
-    }
-
-    void setAcked(boolean isacked) {
-        //last packet was acked yet?
-        boolean isAcked = isacked;
     }
 
     public long getRecSequence() {
@@ -327,21 +316,6 @@ public class Session {
         this.isDataForSendingReady = isDataForSendingReady;
     }
 
-    public void setUnackData(byte[] unackData) {
-        //store data for retransmission
-        byte[] unackData1 = unackData;
-    }
-
-    void setPacketCorrupted(boolean packetCorrupted) {
-        //in ACK packet from client, if the previous packet was corrupted, client will send flag in options field
-        boolean packetCorrupted1 = packetCorrupted;
-    }
-
-    public void setResendPacketCounter(int resendPacketCounter) {
-        //track how many time a packet has been retransmitted => avoid loop
-        int resendPacketCounter1 = resendPacketCounter;
-    }
-
     public int getTimestampSender() {
         return timestampSender;
     }
@@ -360,8 +334,7 @@ public class Session {
 
     boolean isAckToFin() {
         // indicate that vpn client has sent FIN flag and it has been acked
-        boolean ackToFin = false;
-        return ackToFin;
+        return false;
     }
 
     public boolean isBusyRead() {

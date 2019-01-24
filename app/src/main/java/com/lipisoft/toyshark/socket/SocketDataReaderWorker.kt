@@ -162,9 +162,6 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
             val unAck = session.sendNext
             val nextUnAck = session.sendNext + packetBody.size
             session.sendNext = nextUnAck
-            //we need this data later on for retransmission
-            session.setUnackData(packetBody)
-            session.setResendPacketCounter(0)
 
             val data = TCPPacketFactory.createResponsePacketData(ipHeader,
                     tcpheader, packetBody, session.hasReceivedLastSegment(),

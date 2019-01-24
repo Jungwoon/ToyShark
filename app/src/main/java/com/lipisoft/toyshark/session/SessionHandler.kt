@@ -329,12 +329,10 @@ class SessionHandler private constructor() {
      */
     private fun acceptAck(tcpHeader: TCPHeader, session: Session) {
         val isCorrupted = PacketUtil.isPacketCorrupted(tcpHeader)
-        session.setPacketCorrupted(isCorrupted)
         if (isCorrupted) {
             Log.e(TAG, "prev packet was corrupted, last ack# " + tcpHeader.ackNumber)
         }
         if (tcpHeader.ackNumber > session.sendUnAck || tcpHeader.ackNumber == session.sendNext) {
-            session.setAcked(true)
             //Log.d(TAG,"Accepted ack from client, ack# "+tcpheader.getAckNumber());
 
             if (tcpHeader.windowSize > 0) {
@@ -347,7 +345,6 @@ class SessionHandler private constructor() {
         } else {
             Log.d(TAG, "Not Accepting ack# " + tcpHeader.ackNumber + " , it should be: " + session.sendNext)
             Log.d(TAG, "Prev sendUnack: " + session.sendUnAck)
-            session.setAcked(false)
         }
     }
 
