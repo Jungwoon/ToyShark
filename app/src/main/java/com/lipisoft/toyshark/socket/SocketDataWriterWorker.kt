@@ -33,7 +33,7 @@ class SocketDataWriterWorker(writer: ClientPacketWriter, private val sessionKey:
             return
         }
 
-        session.isBusywrite = true
+        session.isBusyWrite = true
 
         val channel = session.channel
 
@@ -42,11 +42,11 @@ class SocketDataWriterWorker(writer: ClientPacketWriter, private val sessionKey:
             is DatagramChannel -> writeUDP(session)
             else -> return
         }
-        session.isBusywrite = false
+        session.isBusyWrite = false
 
         if (session.isAbortingConnection) {
             Log.d(TAG, "removing aborted connection -> $sessionKey")
-            session.selectionKey.cancel()
+            session.selectionKey!!.cancel()
 
             if (channel is SocketChannel) {
                 try {
@@ -79,7 +79,7 @@ class SocketDataWriterWorker(writer: ClientPacketWriter, private val sessionKey:
         val channel = session.channel as DatagramChannel
         val name = PacketUtil.intToIPAddress(session.destIp) + ":" + session.destPort +
                 "-" + PacketUtil.intToIPAddress(session.sourceIp) + ":" + session.sourcePort
-        val data = session.sendingData
+        val data = session.getSendingData()
         val buffer = ByteBuffer.allocate(data.size)
         buffer.put(data)
         buffer.flip()
@@ -109,7 +109,7 @@ class SocketDataWriterWorker(writer: ClientPacketWriter, private val sessionKey:
         val name = PacketUtil.intToIPAddress(session.destIp) + ":" + session.destPort +
                 "-" + PacketUtil.intToIPAddress(session.sourceIp) + ":" + session.sourcePort
 
-        val data = session.sendingData
+        val data = session.getSendingData()
         val buffer = ByteBuffer.allocate(data.size)
         buffer.put(data)
         buffer.flip()
@@ -125,7 +125,7 @@ class SocketDataWriterWorker(writer: ClientPacketWriter, private val sessionKey:
 
             //close connection with vpn client
             val rstData = TCPPacketFactory.createRstData(
-                    session.lastIpHeader, session.lastTcpHeader, 0)
+                    session.lastIpHeader!!, session.lastTcpHeader!!, 0)
             try {
                 writer!!.write(rstData)
                 val socketData = SocketData.instance

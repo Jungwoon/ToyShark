@@ -47,7 +47,7 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
 
         if (session.isAbortingConnection) {
             Log.d(TAG, "removing aborted connection -> $sessionKey")
-            session.selectionKey.cancel()
+            session.selectionKey!!.cancel()
             if (channel is SocketChannel) {
                 try {
                     if (channel.isConnected) {
@@ -70,7 +70,7 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
             }
             SessionManager.INSTANCE.closeSession(session)
         } else {
-            session.setBusyread(false)
+            session.isBusyRead = false
         }
     }
 
@@ -119,10 +119,7 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
 
     private fun sendToRequester(buffer: ByteBuffer, dataSize: Int, session: Session) {
         //last piece of data is usually smaller than MAX_RECEIVE_BUFFER_SIZE
-        if (dataSize < DataConst.MAX_RECEIVE_BUFFER_SIZE)
-            session.setHasReceivedLastSegment(true)
-        else
-            session.setHasReceivedLastSegment(false)
+        session.hasReceivedLastSegment = dataSize < DataConst.MAX_RECEIVE_BUFFER_SIZE
 
         buffer.limit(dataSize)
         buffer.flip()
@@ -130,7 +127,7 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
         val data = ByteArray(dataSize)
         System.arraycopy(buffer.array(), 0, data, 0, dataSize)
         session.addReceivedData(data)
-        //pushing all data to vpn client
+        // pushing all data to vpn client
         while (session.hasReceivedData()) {
             pushDataToClient(session)
         }
@@ -147,8 +144,8 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
             Log.d(TAG, "no data for vpn client")
         }
 
-        val ipHeader = session.lastIpHeader
-        val tcpheader = session.lastTcpHeader
+        val ipHeader = session.lastIpHeader!!
+        val tcpheader = session.lastTcpHeader!!
         // TODO What does 60 mean?
         var max = session.maxSegmentSize - 60
 
@@ -158,13 +155,13 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
             max = PCapFileWriter.MAX_PACKET_SIZE - 60
         }
         val packetBody = session.getReceivedData(max)
-        if (packetBody != null && packetBody.isNotEmpty()) {
+        if (packetBody.isNotEmpty()) {
             val unAck = session.sendNext
             val nextUnAck = session.sendNext + packetBody.size
             session.sendNext = nextUnAck
 
             val data = TCPPacketFactory.createResponsePacketData(ipHeader,
-                    tcpheader, packetBody, session.hasReceivedLastSegment(),
+                    tcpheader, packetBody, session.hasReceivedLastSegment,
                     session.recSequence, unAck,
                     session.timestampSender, session.timestampReplyTo)
             try {
@@ -178,9 +175,9 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
     }
 
     private fun sendFin(session: Session) {
-        val ipHeader = session.lastIpHeader
-        val tcpheader = session.lastTcpHeader
-        val data = TCPPacketFactory.createFinData(ipHeader, tcpheader,
+        val ipHeader = session.lastIpHeader!!
+        val tcpHeader = session.lastTcpHeader!!
+        val data = TCPPacketFactory.createFinData(ipHeader, tcpHeader,
                 session.sendNext, session.recSequence,
                 session.timestampSender, session.timestampReplyTo)
         try {
@@ -213,7 +210,7 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
                     val data = ByteArray(len)
                     System.arraycopy(buffer.array(), 0, data, 0, len)
                     val packetData = UDPPacketFactory.createResponsePacket(
-                            session.lastIpHeader, session.lastUdpHeader, data)
+                            session.lastIpHeader!!, session.lastUdpHeader!!, data)
                     //write to client
                     writer.write(packetData)
                     //publish to packet subscriber

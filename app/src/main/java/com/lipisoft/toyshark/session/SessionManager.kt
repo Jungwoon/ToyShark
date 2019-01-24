@@ -89,7 +89,7 @@ enum class SessionManager {
             return 0
         val payload = getRemainingBytes(buffer)
         // appending data to buffer
-        session.sendingData = payload
+        session.setSendingData(payload)
         return payload.size
     }
 

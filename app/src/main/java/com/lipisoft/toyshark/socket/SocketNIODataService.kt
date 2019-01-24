@@ -192,16 +192,16 @@ class SocketNIODataService(private val clientPacketWriter: ClientPacketWriter) :
 
         // tcp has PSH flag when data is ready for sending, UDP does not have this
         if (selectionKey.isValid && selectionKey.isWritable
-                && !session.isBusywrite && session.hasDataToSend()
+                && !session.isBusyWrite && session.hasDataToSend()
                 && session.isDataForSendingReady) {
-            session.isBusywrite = true
+            session.isBusyWrite = true
             val worker = SocketDataWriterWorker(clientPacketWriter, sessionKey)
             workerPool.execute(worker)
         }
 
         if (selectionKey.isValid && selectionKey.isReadable
                 && !session.isBusyRead) {
-            session.setBusyread(true)
+            session.isBusyRead = true
             val worker = SocketDataReaderWorker(clientPacketWriter, sessionKey)
             workerPool.execute(worker)
         }

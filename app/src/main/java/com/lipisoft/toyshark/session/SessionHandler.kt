@@ -227,7 +227,7 @@ class SessionHandler private constructor() {
             writer!!.write(data)
             packetData.addData(data)
             if (session != null) {
-                session.selectionKey.cancel()
+                session.selectionKey?.cancel()
                 SessionManager.INSTANCE.closeSession(session)
                 Log.d(TAG, "ACK to client's FIN and close session => " + PacketUtil.intToIPAddress(ip.destinationIP) + ":" + tcp.destinationPort
                         + "-" + PacketUtil.intToIPAddress(ip.sourceIP) + ":" + tcp.sourcePort)
@@ -282,7 +282,7 @@ class SessionHandler private constructor() {
         session.timestampReplyTo = tcp.timeStampSender
         session.timestampSender = System.currentTimeMillis().toInt()
 
-        Log.d(TAG, "set data ready for sending to dest, bg will do it. data size: " + session.sendingDataSize)
+        Log.d(TAG, "set data ready for sending to dest, bg will do it. data size: " + session.getSendingDataSize())
     }
 
     /**
@@ -333,7 +333,7 @@ class SessionHandler private constructor() {
             Log.e(TAG, "prev packet was corrupted, last ack# " + tcpHeader.ackNumber)
         }
         if (tcpHeader.ackNumber > session.sendUnAck || tcpHeader.ackNumber == session.sendNext) {
-            //Log.d(TAG,"Accepted ack from client, ack# "+tcpheader.getAckNumber());
+            session.isAck = true
 
             if (tcpHeader.windowSize > 0) {
                 session.setSendWindowSizeAndScale(tcpHeader.windowSize, session.sendWindowScale)
@@ -345,6 +345,7 @@ class SessionHandler private constructor() {
         } else {
             Log.d(TAG, "Not Accepting ack# " + tcpHeader.ackNumber + " , it should be: " + session.sendNext)
             Log.d(TAG, "Prev sendUnack: " + session.sendUnAck)
+            session.isAck = false
         }
     }
 
