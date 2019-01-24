@@ -89,8 +89,8 @@ object TCPPacketFactory {
 
         ip.destinationIP = destIp
         ip.sourceIP = sourceIp
-        tcp.setDestinationPort(destPort)
-        tcp.setSourcePort(sourcePort)
+        tcp.destinationPort = destPort
+        tcp.sourcePort = sourcePort
 
         tcp.ackNumber = ackToClient
         tcp.sequenceNumber = seqToClient
@@ -132,8 +132,8 @@ object TCPPacketFactory {
 
         ip.destinationIP = destIp
         ip.sourceIP = sourceIp
-        tcp.setDestinationPort(destPort)
-        tcp.setSourcePort(sourcePort)
+        tcp.destinationPort = destPort
+        tcp.sourcePort = sourcePort
 
         ip.identification = PacketUtil.getPacketId()
 
@@ -144,7 +144,7 @@ object TCPPacketFactory {
         tcp.setIsCWR(false)
         tcp.setIsECE(false)
         tcp.setIsFIN(true)
-        tcp.setIsNS(false)
+        tcp.isNS = false
         tcp.setIsURG(false)
 
         // remove any option field
@@ -192,8 +192,8 @@ object TCPPacketFactory {
 
         ip.destinationIP = destIp
         ip.sourceIP = sourceIp
-        tcp.setDestinationPort(destPort)
-        tcp.setSourcePort(sourcePort)
+        tcp.destinationPort = destPort
+        tcp.sourcePort = sourcePort
 
         ip.identification = 0
 
@@ -204,7 +204,7 @@ object TCPPacketFactory {
         tcp.setIsCWR(false)
         tcp.setIsECE(false)
         tcp.setIsFIN(false)
-        tcp.setIsNS(false)
+        tcp.isNS = false
         tcp.setIsURG(false)
 
         // remove any option field
@@ -243,8 +243,8 @@ object TCPPacketFactory {
 
         ip.destinationIP = destIp
         ip.sourceIP = sourceIp
-        tcp.setDestinationPort(destPort)
-        tcp.setSourcePort(sourcePort)
+        tcp.destinationPort = destPort
+        tcp.sourcePort = sourcePort
 
         tcp.ackNumber = ackToClient
         tcp.sequenceNumber = seqNumber
@@ -289,8 +289,8 @@ object TCPPacketFactory {
         val sourcePort = tcpHeader.destinationPort
         ipHeader.destinationIP = ipHeader.sourceIP
         ipHeader.sourceIP = sourceIp
-        tcpHeader.setDestinationPort(tcpHeader.sourcePort)
-        tcpHeader.setSourcePort(sourcePort)
+        tcpHeader.destinationPort = tcpHeader.sourcePort
+        tcpHeader.sourcePort = sourcePort
 
         tcpHeader.ackNumber = ackNumber
         tcpHeader.sequenceNumber = seqNumber
@@ -341,8 +341,8 @@ object TCPPacketFactory {
         }
         ipheader.destinationIP = destIp
         ipheader.sourceIP = sourceIp
-        tcpheader.setDestinationPort(destPort)
-        tcpheader.setSourcePort(sourcePort)
+        tcpheader.destinationPort = destPort
+        tcpheader.sourcePort = sourcePort
 
         // ack = received sequence + 1
         tcpheader.ackNumber = ackNumber
