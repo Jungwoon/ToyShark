@@ -28,7 +28,7 @@ import java.util.Date
  * Date: July 30, 2014
  */
 internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, private val sessionKey: String) : Runnable {
-    private val socketData: SocketData = SocketData.getInstance()
+    private val socketData: SocketData = SocketData.instance
 
     override fun run() {
         val session = SessionManager.INSTANCE.getSessionByKey(sessionKey)

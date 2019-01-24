@@ -42,7 +42,7 @@ import android.util.Log
  */
 class SessionHandler private constructor() {
     private var writer: ClientPacketWriter? = null
-    private val packetData: SocketData = SocketData.getInstance()
+    private val packetData: SocketData = SocketData.instance
 
     fun setWriter(writer: ClientPacketWriter) {
         this.writer = writer

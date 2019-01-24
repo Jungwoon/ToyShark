@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.lipisoft.toyshark.socket;
+package com.lipisoft.toyshark.socket
 
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.LinkedList
+import java.util.Queue
 
 /**
  * Singleton data structure for storing packet data in queue. Data is pushed into this queue from
@@ -25,23 +25,21 @@ import java.util.Queue;
  * @author Borey Sao
  * Date: May 12, 2014
  */
-public class SocketData {
-    private static final SocketData instance = new SocketData();
-    private Queue<byte[]> data;
+class SocketData {
 
-    public static SocketData getInstance() {
-        return instance;
+    companion object {
+        val instance = SocketData()
     }
 
-    private SocketData() {
-        data = new LinkedList<>();
+    private var data: Queue<ByteArray>? = LinkedList()
+
+    @Synchronized
+    fun addData(packet: ByteArray) {
+        data?.add(packet)
     }
 
-    public synchronized void addData(byte[] packet) {
-        data.add(packet);
-    }
-
-    public synchronized byte[] getData() {
-        return data.poll();
+    @Synchronized
+    fun getData(): ByteArray? {
+        return data?.poll()
     }
 }
