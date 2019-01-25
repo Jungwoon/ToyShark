@@ -325,7 +325,7 @@ class ByteUtils {
          * @param num target number will be changed
          * @return flipped representation.
          */
-        fun flip16(num: Int): Int {
+        private fun flip16(num: Int): Int {
             return (num and 0x00FF shl 8) + (num and 0xFF00 shr 8)
         }
 

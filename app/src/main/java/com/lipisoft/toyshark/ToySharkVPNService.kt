@@ -342,6 +342,7 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
         }
 
         Log.i(TAG, "startVpnService => create builder")
+
         // Configure a builder while parsing the parameters.
         val builder = Builder()
                 .addAddress("10.120.0.1", 32)
@@ -350,12 +351,12 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
 
         fileDescriptor = builder.establish()
 
-        if (fileDescriptor != null) {
+        return if (fileDescriptor != null) {
             Log.i(TAG, "VPN Established:interface = " + fileDescriptor!!.fileDescriptor.toString())
-            return true
+            true
         } else {
             Log.d(TAG, "fileDescriptor is null")
-            return false
+            false
         }
     }
 

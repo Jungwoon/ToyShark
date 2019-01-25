@@ -77,6 +77,7 @@ class SocketNIODataService(private val clientPacketWriter: ClientPacketWriter) :
             if (shutdown) {
                 break
             }
+
             synchronized(syncSelector2) {
                 val iterator = selector!!.selectedKeys().iterator()
                 while (iterator.hasNext()) {

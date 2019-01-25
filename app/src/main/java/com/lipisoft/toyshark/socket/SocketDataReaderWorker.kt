@@ -30,6 +30,10 @@ import java.util.Date
 internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, private val sessionKey: String) : Runnable {
     private val socketData: SocketData = SocketData.instance
 
+    companion object {
+        private const val TAG = "SocketDataReaderWorker"
+    }
+
     override fun run() {
         val session = SessionManager.INSTANCE.getSessionByKey(sessionKey)
         if (session == null) {
@@ -127,6 +131,7 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
         val data = ByteArray(dataSize)
         System.arraycopy(buffer.array(), 0, data, 0, dataSize)
         session.addReceivedData(data)
+
         // pushing all data to vpn client
         while (session.hasReceivedData()) {
             pushDataToClient(session)
@@ -140,7 +145,7 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
      */
     private fun pushDataToClient(session: Session) {
         if (!session.hasReceivedData()) {
-            //no data to send
+            // no data to send
             Log.d(TAG, "no data for vpn client")
         }
 
@@ -242,9 +247,5 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
             session.isAbortingConnection = true
         }
 
-    }
-
-    companion object {
-        private val TAG = "SocketDataReaderWorker"
     }
 }

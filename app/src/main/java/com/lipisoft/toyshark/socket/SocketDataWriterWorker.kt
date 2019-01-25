@@ -18,7 +18,7 @@ import java.util.Date
 class SocketDataWriterWorker(writer: ClientPacketWriter, private val sessionKey: String) : Runnable {
 
     companion object {
-        private val TAG = "SocketDataWriterWorker"
+        private const val TAG = "SocketDataWriterWorker"
         private var writer: ClientPacketWriter? = null
     }
 

@@ -63,10 +63,6 @@ class SocketProtector {
         protector!!.protectSocket(socket)
     }
 
-    fun protect(socket: Int) {
-        protector!!.protectSocket(socket)
-    }
-
     fun protect(socket: DatagramSocket) {
         protector!!.protectSocket(socket)
     }

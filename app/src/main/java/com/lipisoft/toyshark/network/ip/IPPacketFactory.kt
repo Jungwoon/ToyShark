@@ -45,7 +45,7 @@ object IPPacketFactory {
                 iPv4Header.totalLength,
                 iPv4Header.identification,
                 iPv4Header.isMayFragment,
-                iPv4Header.isLastFragment,
+                iPv4Header.lastFragment,
                 iPv4Header.fragmentOffset,
                 iPv4Header.timeToLive,
                 iPv4Header.protocol,

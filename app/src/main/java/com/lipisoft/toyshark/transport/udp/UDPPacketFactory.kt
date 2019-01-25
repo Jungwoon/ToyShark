@@ -25,13 +25,6 @@ object UDPPacketFactory {
         return UDPHeader(srcPort, destPort, length, checksum)
     }
 
-    fun copyHeader(header: UDPHeader): UDPHeader {
-        return UDPHeader(header.sourcePort,
-                header.destinationPort,
-                header.length,
-                header.checksum)
-    }
-
     /**
      * create packet data for responding to vpn client
      *

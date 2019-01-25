@@ -17,12 +17,10 @@
 package com.lipisoft.toyshark.util
 
 import java.net.Inet4Address
-import java.net.InetAddress
 import java.net.NetworkInterface
 import java.net.SocketException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.Enumeration
 import android.util.Log
 
 import com.lipisoft.toyshark.network.ip.IPv4Header
@@ -296,7 +294,7 @@ object PacketUtil {
                 "\r\nIP Header length: " + ipheader.ipHeaderLength +
                 "\r\nIP checksum: " + ipheader.headerChecksum +
                 "\r\nMay fragement? " + ipheader.isMayFragment +
-                "\r\nLast fragment? " + ipheader.isLastFragment +
+                "\r\nLast fragment? " + ipheader.lastFragment +
                 "\r\nFlag: " + ipheader.flag +
                 "\r\nFragment Offset: " + ipheader.fragmentOffset +
                 "\r\nDest: " + intToIPAddress(ipheader.destinationIP) +
@@ -346,7 +344,7 @@ object PacketUtil {
                 .append("\r\nTCP Checksum: ").append(tcpheader.checksum)
                 .append("\r\nIs Valid TCP checksum: ").append(isValidChecksum)
                 .append("\r\nMay fragement? ").append(ipHeader.isMayFragment)
-                .append("\r\nLast fragment? ").append(ipHeader.isLastFragment)
+                .append("\r\nLast fragment? ").append(ipHeader.lastFragment)
                 .append("\r\nFlag: ").append(ipHeader.flag.toInt())
                 .append("\r\nFragment Offset: ").append(ipHeader.fragmentOffset.toInt())
                 .append("\r\nWindow: ").append(tcpheader.windowSize)

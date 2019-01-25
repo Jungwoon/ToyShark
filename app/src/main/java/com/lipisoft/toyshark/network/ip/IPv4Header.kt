@@ -54,7 +54,7 @@ class IPv4Header(
         var totalLength: Int,
         var identification: Int,
         private var mayFragment: Boolean,
-        val isLastFragment: Boolean,
+        val lastFragment: Boolean,
         val fragmentOffset: Short,
         val timeToLive: Byte,
         val protocol: Byte,
@@ -68,7 +68,7 @@ class IPv4Header(
         if (mayFragment)
             this.flag = this.flag or 0x40
 
-        if (isLastFragment)
+        if (lastFragment)
             this.flag = this.flag or 0x20
     }
 

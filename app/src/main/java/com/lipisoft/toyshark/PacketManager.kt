@@ -29,10 +29,6 @@ enum class PacketManager {
         return list.add(packet)
     }
 
-    fun getList(): List<Packet> {
-        return list
-    }
-
     fun setAdapter(adapter: PacketListAdapter) {
         this.adapter = adapter
     }
