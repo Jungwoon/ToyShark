@@ -11,7 +11,11 @@ import java.util.ArrayList
 enum class PacketManager {
     INSTANCE;
 
-    val list = ArrayList<Packet>()
+    companion object {
+        const val PACKET = 0
+    }
+
+    val packetList = ArrayList<Packet>()
     private var adapter: PacketListAdapter? = null
 
     val handler: Handler = object : Handler(Looper.getMainLooper()) {
@@ -26,15 +30,11 @@ enum class PacketManager {
     }
 
     fun add(packet: Packet): Boolean {
-        return list.add(packet)
+        return packetList.add(packet)
     }
 
     fun setAdapter(adapter: PacketListAdapter) {
         this.adapter = adapter
     }
 
-    companion object {
-
-        val PACKET = 0
-    }
 }

@@ -358,7 +358,7 @@ object PacketUtil {
             while (i < options.size) {
                 val kind = options[i]
                 if (kind.toInt() == 0) {
-                    str.append("\r\n...End of options list")
+                    str.append("\r\n...End of options packetList")
                 } else if (kind.toInt() == 1) {
                     str.append("\r\n...NOP")
                 } else if (kind.toInt() == 2) {

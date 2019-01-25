@@ -17,11 +17,9 @@ package com.lipisoft.toyshark
 
 import android.app.AlertDialog
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
-import android.net.NetworkInfo
 import android.net.VpnService
 import android.os.Bundle
 import android.os.Environment
@@ -66,7 +64,7 @@ class MainActivity : AppCompatActivity() {
         recyclerView.setHasFixedSize(true)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        val adapter = PacketListAdapter(PacketManager.INSTANCE.list)
+        val adapter = PacketListAdapter(PacketManager.INSTANCE.packetList)
         PacketManager.INSTANCE.setAdapter(adapter)
         recyclerView.adapter = adapter
 
