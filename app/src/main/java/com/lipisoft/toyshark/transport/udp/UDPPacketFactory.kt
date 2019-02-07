@@ -1,7 +1,7 @@
 package com.lipisoft.toyshark.transport.udp
 
-import com.lipisoft.toyshark.Packet
-import com.lipisoft.toyshark.PacketManager
+import com.lipisoft.toyshark.packet.Packet
+import com.lipisoft.toyshark.packet.PacketManager
 import com.lipisoft.toyshark.network.ip.IPPacketFactory
 import com.lipisoft.toyshark.network.ip.IPv4Header
 import com.lipisoft.toyshark.transport.tcp.PacketHeaderException

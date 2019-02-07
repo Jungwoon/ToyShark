@@ -28,7 +28,7 @@ import java.util.Date
  * Date: July 30, 2014
  */
 internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, private val sessionKey: String) : Runnable {
-    private val socketData: SocketData = SocketData.instance
+    private val socketQueue: SocketQueue = SocketQueue.instance
 
     companion object {
         private const val TAG = "SocketDataReaderWorker"
@@ -171,7 +171,7 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
                     session.timestampSender, session.timestampReplyTo)
             try {
                 writer.write(data)
-                socketData.addData(data)
+                socketQueue.addData(data)
             } catch (e: IOException) {
                 Log.e(TAG, "Failed to send ACK + Data packet: " + e.message)
             }
@@ -187,7 +187,7 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
                 session.timestampSender, session.timestampReplyTo)
         try {
             writer.write(data)
-            socketData.addData(data)
+            socketQueue.addData(data)
         } catch (e: IOException) {
             Log.e(TAG, "Failed to send FIN packet: " + e.message)
         }
@@ -219,7 +219,7 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
                     //write to client
                     writer.write(packetData)
                     //publish to packet subscriber
-                    socketData.addData(packetData)
+                    socketQueue.addData(packetData)
                     Log.d(TAG, "SDR: sent " + len + " bytes to UDP client, packetData.length: "
                             + packetData.size)
                     buffer.clear()

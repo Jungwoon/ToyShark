@@ -20,7 +20,7 @@ import java.util.ArrayList
 import android.util.Log
 
 /**
- * Publish packet socketData to subscriber who implements interface IReceivePacket
+ * Publish packet socketQueue to subscriber who implements interface IReceivePacket
  *
  * @author Borey Sao
  * Date: June 15, 2014
@@ -29,7 +29,7 @@ class SocketDataPublisher : Runnable {
     private val TAG = "SocketDataPublisher"
 
     private val subscribers: MutableList<IReceivePacket>
-    private val socketData: SocketData = SocketData.instance
+    private val socketQueue: SocketQueue = SocketQueue.instance
     @Volatile
     var isShuttingDown = false
 
@@ -38,9 +38,9 @@ class SocketDataPublisher : Runnable {
     }
 
     /**
-     * register a subscriber who wants to receive packet socketData
+     * register a subscriber who wants to receive packet socketQueue
      *
-     * @param subscriber a subscriber who wants to receive packet socketData
+     * @param subscriber a subscriber who wants to receive packet socketQueue
      */
     fun subscribe(subscriber: IReceivePacket) {
         if (!subscribers.contains(subscriber)) {
@@ -52,7 +52,7 @@ class SocketDataPublisher : Runnable {
         Log.d(TAG, "BackgroundWriter starting...")
 
         while (!isShuttingDown) {
-            val packetData = socketData.getData()
+            val packetData = socketQueue.getData()
 
             if (packetData != null) {
                 for (subscriber in subscribers) {

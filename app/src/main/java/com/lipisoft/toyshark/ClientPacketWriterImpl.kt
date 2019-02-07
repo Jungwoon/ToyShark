@@ -24,8 +24,7 @@ import java.io.IOException
  * @author Borey Sao
  * Date: May 22, 2014
  */
-class ClientPacketWriterImpl(private val clientWriter: FileOutputStream)
-    : ClientPacketWriter {
+class ClientPacketWriterImpl(private val clientWriter: FileOutputStream) : ClientPacketWriter {
 
     @Synchronized
     @Throws(IOException::class)

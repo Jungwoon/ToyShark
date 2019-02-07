@@ -80,7 +80,7 @@ enum class SessionManager {
 
     /**
      * add data from client which will be sending to the destination server later one when receiving PSH flag.
-     *
+     * PSH 플래그를 수신 할 때 나중에 대상 서버로 보낼 클라이언트의 데이터를 추가하십시오.
      * @param buffer  Data
      * @param session Data
      */
@@ -121,11 +121,11 @@ enum class SessionManager {
 
     /**
      * remove session from memory, then close socket connection.
-     *
+     * 메모리에서 세션을 삭제하고 소켓 연결을 닫음
      * @param destIp      Destination IP Address
      * @param destPort    Destination Port
-     * @param srcIp   Source IP Address
-     * @param srcPort Source Port
+     * @param srcIp       Source IP Address
+     * @param srcPort     Source Port
      */
     fun closeSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int) {
         val key = createKey(
@@ -147,6 +147,10 @@ enum class SessionManager {
         }
     }
 
+    /**
+     * remove session from memory, then close socket connection.
+     * 메모리에서 세션을 삭제하고 소켓 연결을 닫음
+     */
     fun closeSession(session: Session) {
         val key = createKey(
                 session.destIp,
@@ -166,6 +170,7 @@ enum class SessionManager {
         Log.d(TAG, "closed session -> $key")
     }
 
+    // 새로운 UDP 세션 생성
     fun createNewUDPSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
         val keys = createKey(
                 destIp,
@@ -245,6 +250,7 @@ enum class SessionManager {
         return session
     }
 
+    // 새로운 세션 생성
     fun createNewSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
         val key = createKey(
                 destIp,
@@ -268,7 +274,6 @@ enum class SessionManager {
             channel.socket().soTimeout = 0
             channel.socket().receiveBufferSize = DataConst.MAX_RECEIVE_BUFFER_SIZE
             channel.configureBlocking(false)
-
         } catch (e: SocketException) {
             Log.e(TAG, e.toString())
             return null

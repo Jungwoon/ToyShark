@@ -1,4 +1,4 @@
-package com.lipisoft.toyshark
+package com.lipisoft.toyshark.packet
 
 import android.os.Handler
 import android.os.Looper
@@ -21,7 +21,7 @@ enum class PacketManager {
     val handler: Handler = object : Handler(Looper.getMainLooper()) {
         override fun handleMessage(msg: Message?) {
             if (msg != null) {
-                if (msg.what == PacketManager.PACKET) {
+                if (msg.what == PACKET) {
                     adapter!!.notifyDataSetChanged()
                 }
             }

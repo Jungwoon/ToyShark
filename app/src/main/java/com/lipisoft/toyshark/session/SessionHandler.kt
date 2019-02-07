@@ -20,11 +20,11 @@ import java.io.IOException
 import java.nio.ByteBuffer
 
 import com.lipisoft.toyshark.ClientPacketWriter
-import com.lipisoft.toyshark.Packet
-import com.lipisoft.toyshark.PacketManager
+import com.lipisoft.toyshark.packet.Packet
+import com.lipisoft.toyshark.packet.PacketManager
 import com.lipisoft.toyshark.network.ip.IPPacketFactory
 import com.lipisoft.toyshark.network.ip.IPv4Header
-import com.lipisoft.toyshark.socket.SocketData
+import com.lipisoft.toyshark.socket.SocketQueue
 import com.lipisoft.toyshark.transport.tcp.PacketHeaderException
 import com.lipisoft.toyshark.transport.tcp.TCPHeader
 import com.lipisoft.toyshark.transport.tcp.TCPPacketFactory
@@ -42,122 +42,21 @@ import android.util.Log
  */
 class SessionHandler private constructor() {
     private var writer: ClientPacketWriter? = null
-    private val packetData: SocketData = SocketData.instance
+    private val packetQueue: SocketQueue = SocketQueue.instance
+
+    companion object {
+        private const val TAG = "SessionHandler"
+
+        val instance = SessionHandler()
+    }
 
     fun setWriter(writer: ClientPacketWriter) {
         this.writer = writer
     }
 
-    private fun handleUDPPacket(clientPacketData: ByteBuffer, ipHeader: IPv4Header, udpheader: UDPHeader) {
-        var session = SessionManager.INSTANCE.getSession(ipHeader.destinationIP, udpheader.destinationPort,
-                ipHeader.sourceIP, udpheader.sourcePort)
-
-        if (session == null) {
-            session = SessionManager.INSTANCE.createNewUDPSession(ipHeader.destinationIP, udpheader.destinationPort,
-                    ipHeader.sourceIP, udpheader.sourcePort)
-        }
-
-        if (session == null) {
-            return
-        }
-
-        session.lastIpHeader = ipHeader
-        session.lastUdpHeader = udpheader
-        val len = SessionManager.INSTANCE.addClientData(clientPacketData, session)
-        session.isDataForSendingReady = true
-        Log.d(TAG, "added UDP data for bg worker to send: $len")
-        SessionManager.INSTANCE.keepSessionAlive(session)
-    }
-
-    private fun handleTCPPacket(clientPacketData: ByteBuffer, ipHeader: IPv4Header, tcpheader: TCPHeader) {
-        val dataLength = clientPacketData.limit() - clientPacketData.position()
-        val sourceIP = ipHeader.sourceIP
-        val destinationIP = ipHeader.destinationIP
-        val sourcePort = tcpheader.sourcePort
-        val destinationPort = tcpheader.destinationPort
-
-        if (tcpheader.isSYN) {
-            //3-way handshake + create new session
-            //set windows size and scale, set reply time in options
-            replySynAck(ipHeader, tcpheader)
-        } else if (tcpheader.isACK) {
-            val key = SessionManager.INSTANCE.createKey(destinationIP, destinationPort, sourceIP, sourcePort)
-            val session = SessionManager.INSTANCE.getSessionByKey(key)
-
-            if (session == null) {
-                if (tcpheader.isFIN) {
-                    sendLastAck(ipHeader, tcpheader)
-                } else if (!tcpheader.isRST) {
-                    sendRstPacket(ipHeader, tcpheader, dataLength)
-                } else {
-                    Log.e(TAG, "**** ==> Session not found: $key")
-                }
-                return
-            }
-
-            session.lastIpHeader = ipHeader
-            session.lastTcpHeader = tcpheader
-
-            //any data from client?
-            if (dataLength > 0) {
-                //accumulate data from client
-                if (session.recSequence == 0L || tcpheader.sequenceNumber >= session.recSequence) {
-                    val addedLength = SessionManager.INSTANCE.addClientData(clientPacketData, session)
-                    //send ack to client only if new data was added
-                    sendAck(ipHeader, tcpheader, addedLength, session)
-                } else {
-                    sendAckForDisorder(ipHeader, tcpheader, dataLength)
-                }
-            } else {
-                //an ack from client for previously sent data
-                acceptAck(tcpheader, session)
-
-                if (session.isClosingConnection) {
-                    sendFinAck(ipHeader, tcpheader, session)
-                } else if (session.isAckToFin && !tcpheader.isFIN) {
-                    //the last ACK from client after FIN-ACK flag was sent
-                    SessionManager.INSTANCE.closeSession(destinationIP, destinationPort, sourceIP, sourcePort)
-                    Log.d(TAG, "got last ACK after FIN, session is now closed.")
-                }
-            }
-            //received the last segment of data from vpn client
-            if (tcpheader.isPSH) {
-                //push data to destination here. Background thread will receive data and fill session's buffer.
-                //Background thread will send packet to client
-                pushDataToDestination(session, tcpheader)
-            } else if (tcpheader.isFIN) {
-                //fin from vpn client is the last packet
-                //ack it
-                Log.d(TAG, "FIN from vpn client, will ack it.")
-                ackFinAck(ipHeader, tcpheader, session)
-            } else if (tcpheader.isRST) {
-                resetConnection(ipHeader, tcpheader)
-            }
-
-            if (!session.isClientWindowFull && !session.isAbortingConnection) {
-                SessionManager.INSTANCE.keepSessionAlive(session)
-            }
-        } else if (tcpheader.isFIN) {
-            //case client sent FIN without ACK
-            val session = SessionManager.INSTANCE.getSession(destinationIP, destinationPort, sourceIP, sourcePort)
-            if (session == null)
-                ackFinAck(ipHeader, tcpheader, null)
-            else
-                SessionManager.INSTANCE.keepSessionAlive(session)
-
-        } else if (tcpheader.isRST) {
-            resetConnection(ipHeader, tcpheader)
-        } else {
-            Log.d(TAG, "unknown TCP flag")
-            val str1 = PacketUtil.getOutput(ipHeader, tcpheader, clientPacketData.array())
-            Log.d(TAG, ">>>>>>>> Received from client <<<<<<<<<<")
-            Log.d(TAG, str1)
-            Log.d(TAG, ">>>>>>>>>>>>>>>>>>>end receiving from client>>>>>>>>>>>>>>>>>>>>>")
-        }
-    }
 
     /**
-     * handle each packet from each vpn client
+     * VPN Client로부터 패킷이 들어왔을때, TCP, UDP 별로 처
      *
      * @param stream ByteBuffer to be read
      */
@@ -165,72 +64,192 @@ class SessionHandler private constructor() {
     fun handlePacket(stream: ByteBuffer) {
         val rawPacket = ByteArray(stream.limit())
         stream.get(rawPacket, 0, stream.limit())
-        packetData.addData(rawPacket)
+        packetQueue.addData(rawPacket)
         stream.rewind()
 
         val ipHeader = IPPacketFactory.createIPv4Header(stream)
-
         val transportHeader: ITransportHeader
-        if (ipHeader.protocol.toInt() == 6) {
-            transportHeader = TCPPacketFactory.createTCPHeader(stream)
-        } else if (ipHeader.protocol.toInt() == 17) {
-            transportHeader = UDPPacketFactory.createUDPHeader(stream)
-        } else {
-            Log.e(TAG, "******===> Unsupported protocol: " + ipHeader.protocol)
-            return
+
+        val tcp = 6
+        val udp = 17
+
+        when {
+            ipHeader.protocol.toInt() == tcp -> transportHeader = TCPPacketFactory.createTCPHeader(stream)
+            ipHeader.protocol.toInt() == udp -> transportHeader = UDPPacketFactory.createUDPHeader(stream)
+            else -> {
+                Log.e(TAG, "******===> Unsupported protocol: " + ipHeader.protocol)
+                return
+            }
         }
 
+        // 위에서 받은 protocol 타입에 따라서 tcp 패킷이 될지, udp 패킷이 될지 정해짐
         val packet = Packet(ipHeader, transportHeader, stream.array())
         PacketManager.INSTANCE.add(packet)
         PacketManager.INSTANCE.handler.obtainMessage(PacketManager.PACKET).sendToTarget()
 
+        // TCP 와 UDP 에 따라서 다르게 stream 을 처리함
         if (transportHeader is TCPHeader) {
             handleTCPPacket(stream, ipHeader, transportHeader)
-        } else if (ipHeader.protocol.toInt() == 17) {
-            handleUDPPacket(stream, ipHeader, transportHeader as UDPHeader)
+        } else if (transportHeader is UDPHeader) {
+            handleUDPPacket(stream, ipHeader, transportHeader)
         }
     }
 
-    private fun sendRstPacket(ip: IPv4Header, tcp: TCPHeader, dataLength: Int) {
-        val data = TCPPacketFactory.createRstData(ip, tcp, dataLength)
+    // 3-Way Handshake + create new session
+    private fun handleTCPPacket(clientPacketData: ByteBuffer, ipHeader: IPv4Header, tcpHeader: TCPHeader) {
+        val dataLength = clientPacketData.limit() - clientPacketData.position()
+        val sourceIP = ipHeader.sourceIP
+        val destinationIP = ipHeader.destinationIP
+        val sourcePort = tcpHeader.sourcePort
+        val destinationPort = tcpHeader.destinationPort
+
+        if (tcpHeader.isSYN) {
+            // set windows size and scale, set reply time in options
+            replySynAck(ipHeader, tcpHeader)
+        }
+        else if (tcpHeader.isACK) {
+            val key = SessionManager.INSTANCE.createKey(destinationIP, destinationPort, sourceIP, sourcePort)
+            val session = SessionManager.INSTANCE.getSessionByKey(key)
+
+            if (session == null) {
+                if (tcpHeader.isFIN) {
+                    sendLastAck(ipHeader, tcpHeader)
+                } else if (!tcpHeader.isRST) {
+                    sendRstPacket(ipHeader, tcpHeader, dataLength)
+                } else {
+                    Log.e(TAG, "**** ==> Session not found: $key")
+                }
+                return
+            }
+
+            session.lastIpHeader = ipHeader
+            session.lastTcpHeader = tcpHeader
+
+            // any data from client?
+            if (dataLength > 0) {
+                // accumulate data from client
+                if (session.recSequence == 0L || tcpHeader.sequenceNumber >= session.recSequence) {
+                    val addedLength = SessionManager.INSTANCE.addClientData(clientPacketData, session)
+                    // send ack to client only if new data was added
+                    sendAck(ipHeader, tcpHeader, addedLength, session)
+                } else {
+                    sendAckForDisorder(ipHeader, tcpHeader, dataLength)
+                }
+            } else {
+                // an ack from client for previously sent data
+                acceptAck(tcpHeader, session)
+
+                if (session.isClosingConnection) {
+                    sendFinAck(ipHeader, tcpHeader, session)
+                } else if (session.isAckToFin && !tcpHeader.isFIN) {
+                    // the last ACK from client after FIN-ACK flag was sent
+                    SessionManager.INSTANCE.closeSession(destinationIP, destinationPort, sourceIP, sourcePort)
+                    Log.d(TAG, "got last ACK after FIN, session is now closed.")
+                }
+            }
+
+            // received the last segment of data from vpn client
+            when {
+                // push data to destination here. Background thread will receive data and fill session's buffer.
+                // Background thread will send packet to client
+                tcpHeader.isPSH -> pushDataToDestination(session, tcpHeader)
+                tcpHeader.isFIN -> ackFinAck(ipHeader, tcpHeader, session) // fin from vpn client is the last packet
+                tcpHeader.isRST -> resetConnection(ipHeader, tcpHeader)
+            }
+
+            if (!session.isClientWindowFull && !session.isAbortingConnection) {
+                SessionManager.INSTANCE.keepSessionAlive(session)
+            }
+        }
+        else if (tcpHeader.isFIN) {
+            // case client sent FIN without ACK
+            val session = SessionManager.INSTANCE.getSession(destinationIP, destinationPort, sourceIP, sourcePort)
+            if (session == null)
+                ackFinAck(ipHeader, tcpHeader, null)
+            else
+                SessionManager.INSTANCE.keepSessionAlive(session)
+
+        }
+        else if (tcpHeader.isRST) {
+            resetConnection(ipHeader, tcpHeader)
+        }
+        else {
+            Log.d(TAG, "unknown TCP flag")
+            val str1 = PacketUtil.getOutput(ipHeader, tcpHeader, clientPacketData.array())
+            Log.d(TAG, ">>>>>>>> Received from client <<<<<<<<<<")
+            Log.d(TAG, str1)
+            Log.d(TAG, ">>>>>>>>>>>>>>>>>>>end receiving from client>>>>>>>>>>>>>>>>>>>>>")
+        }
+    }
+
+    private fun handleUDPPacket(clientPacketData: ByteBuffer, ipHeader: IPv4Header, udpHeader: UDPHeader) {
+        var session = SessionManager.INSTANCE.getSession(
+                ipHeader.destinationIP,
+                udpHeader.destinationPort,
+                ipHeader.sourceIP,
+                udpHeader.sourcePort)
+
+        if (session == null) {
+            session = SessionManager.INSTANCE.createNewUDPSession(
+                    ipHeader.destinationIP,
+                    udpHeader.destinationPort,
+                    ipHeader.sourceIP,
+                    udpHeader.sourcePort)
+        }
+
+        if (session == null) {
+            return
+        }
+
+        session.lastIpHeader = ipHeader
+        session.lastUdpHeader = udpHeader
+
+        val length = SessionManager.INSTANCE.addClientData(clientPacketData, session)
+        session.isDataForSendingReady = true
+        Log.d(TAG, "added UDP data for bg worker to send: $length")
+        SessionManager.INSTANCE.keepSessionAlive(session)
+    }
+
+    private fun sendRstPacket(ipHeader: IPv4Header, tcpHeader: TCPHeader, dataLength: Int) {
+        val data = TCPPacketFactory.createRstData(ipHeader, tcpHeader, dataLength)
         try {
             writer!!.write(data)
-            packetData.addData(data)
+            packetQueue.addData(data)
             Log.d(TAG, "Sent RST Packet to client with dest => " +
-                    PacketUtil.intToIPAddress(ip.destinationIP) + ":" +
-                    tcp.destinationPort)
+                    PacketUtil.intToIPAddress(ipHeader.destinationIP) + ":" +
+                    tcpHeader.destinationPort)
         } catch (e: IOException) {
             Log.e(TAG, "failed to send RST packet: " + e.message)
         }
 
     }
 
-    private fun sendLastAck(ip: IPv4Header, tcp: TCPHeader) {
-        val data = TCPPacketFactory.createResponseAckData(ip, tcp, tcp.sequenceNumber + 1)
+    private fun sendLastAck(ipHeader: IPv4Header, tcpHeader: TCPHeader) {
+        val data = TCPPacketFactory.createResponseAckData(ipHeader, tcpHeader, tcpHeader.sequenceNumber + 1)
         try {
             writer!!.write(data)
-            packetData.addData(data)
+            packetQueue.addData(data)
             Log.d(TAG, "Sent last ACK Packet to client with dest => " +
-                    PacketUtil.intToIPAddress(ip.destinationIP) + ":" +
-                    tcp.destinationPort)
+                    PacketUtil.intToIPAddress(ipHeader.destinationIP) + ":" +
+                    tcpHeader.destinationPort)
         } catch (e: IOException) {
             Log.e(TAG, "failed to send last ACK packet: " + e.message)
         }
 
     }
 
-    private fun ackFinAck(ip: IPv4Header, tcp: TCPHeader, session: Session?) {
-        val ack = tcp.sequenceNumber + 1
-        val seq = tcp.ackNumber
-        val data = TCPPacketFactory.createFinAckData(ip, tcp, ack, seq, true, true)
+    private fun ackFinAck(ipHeader: IPv4Header, tcpHeader: TCPHeader, session: Session?) {
+        val ack = tcpHeader.sequenceNumber + 1
+        val seq = tcpHeader.ackNumber
+        val data = TCPPacketFactory.createFinAckData(ipHeader, tcpHeader, ack, seq, true, true)
         try {
             writer!!.write(data)
-            packetData.addData(data)
+            packetQueue.addData(data)
             if (session != null) {
                 session.selectionKey?.cancel()
                 SessionManager.INSTANCE.closeSession(session)
-                Log.d(TAG, "ACK to client's FIN and close session => " + PacketUtil.intToIPAddress(ip.destinationIP) + ":" + tcp.destinationPort
-                        + "-" + PacketUtil.intToIPAddress(ip.sourceIP) + ":" + tcp.sourcePort)
+                Log.d(TAG, "ACK to client's FIN and close session => " + PacketUtil.intToIPAddress(ipHeader.destinationIP) + ":" + tcpHeader.destinationPort
+                        + "-" + PacketUtil.intToIPAddress(ipHeader.sourceIP) + ":" + tcpHeader.sourcePort)
             }
         } catch (e: IOException) {
             e.printStackTrace()
@@ -238,32 +257,32 @@ class SessionHandler private constructor() {
 
     }
 
-    private fun sendFinAck(ip: IPv4Header, tcp: TCPHeader, session: Session) {
-        val ack = tcp.sequenceNumber
-        val seq = tcp.ackNumber
-        val data = TCPPacketFactory.createFinAckData(ip, tcp, ack, seq, true, false)
+    private fun sendFinAck(ipHeader: IPv4Header, tcpHeader: TCPHeader, session: Session) {
+        val ack = tcpHeader.sequenceNumber
+        val seq = tcpHeader.ackNumber
+        val data = TCPPacketFactory.createFinAckData(ipHeader, tcpHeader, ack, seq, true, false)
         val stream = ByteBuffer.wrap(data)
         try {
             writer!!.write(data)
-            packetData.addData(data)
+            packetQueue.addData(data)
             Log.d(TAG, "00000000000 FIN-ACK packet data to vpn client 000000000000")
-            var vpnip: IPv4Header? = null
+            var vpnIp: IPv4Header? = null
             try {
-                vpnip = IPPacketFactory.createIPv4Header(stream)
+                vpnIp = IPPacketFactory.createIPv4Header(stream)
             } catch (e: PacketHeaderException) {
                 e.printStackTrace()
             }
 
-            var vpntcp: TCPHeader? = null
+            var vpnTcp: TCPHeader? = null
             try {
-                if (vpnip != null)
-                    vpntcp = TCPPacketFactory.createTCPHeader(stream)
+                if (vpnIp != null)
+                    vpnTcp = TCPPacketFactory.createTCPHeader(stream)
             } catch (e: PacketHeaderException) {
                 e.printStackTrace()
             }
 
-            if (vpnip != null && vpntcp != null) {
-                val sout = PacketUtil.getOutput(vpnip, vpntcp, data)
+            if (vpnIp != null && vpnTcp != null) {
+                val sout = PacketUtil.getOutput(vpnIp, vpnTcp, data)
                 Log.d(TAG, sout)
             }
             Log.d(TAG, "0000000000000 finished sending FIN-ACK packet to vpn client 000000000000")
@@ -288,33 +307,33 @@ class SessionHandler private constructor() {
     /**
      * send acknowledgment packet to VPN client
      *
-     * @param ipheader           IP Header
-     * @param tcpheader          TCP Header
+     * @param ipHeader           IP Header
+     * @param tcpHeader          TCP Header
      * @param acceptedDataLength Data Length
      * @param session            Session
      */
-    private fun sendAck(ipheader: IPv4Header, tcpheader: TCPHeader, acceptedDataLength: Int, session: Session) {
-        val acknumber = session.recSequence + acceptedDataLength
-        Log.d(TAG, "sent ack, ack# " + session.recSequence + " + " + acceptedDataLength + " = " + acknumber)
-        session.recSequence = acknumber
-        val data = TCPPacketFactory.createResponseAckData(ipheader, tcpheader, acknumber)
+    private fun sendAck(ipHeader: IPv4Header, tcpHeader: TCPHeader, acceptedDataLength: Int, session: Session) {
+        val ackNumber = session.recSequence + acceptedDataLength
+        Log.d(TAG, "sent ack, ack# " + session.recSequence + " + " + acceptedDataLength + " = " + ackNumber)
+        session.recSequence = ackNumber
+        val data = TCPPacketFactory.createResponseAckData(ipHeader, tcpHeader, ackNumber)
         try {
             writer!!.write(data)
-            packetData.addData(data)
+            packetQueue.addData(data)
         } catch (e: IOException) {
             Log.e(TAG, "Failed to send ACK packet: " + e.message)
         }
 
     }
 
-    private fun sendAckForDisorder(ipHeader: IPv4Header, tcpheader: TCPHeader, acceptedDataLength: Int) {
-        val ackNumber = tcpheader.sequenceNumber + acceptedDataLength
-        Log.d(TAG, "sent ack, ack# " + tcpheader.sequenceNumber +
+    private fun sendAckForDisorder(ipHeader: IPv4Header, tcpHeader: TCPHeader, acceptedDataLength: Int) {
+        val ackNumber = tcpHeader.sequenceNumber + acceptedDataLength
+        Log.d(TAG, "sent ack, ack# " + tcpHeader.sequenceNumber +
                 " + " + acceptedDataLength + " = " + ackNumber)
-        val data = TCPPacketFactory.createResponseAckData(ipHeader, tcpheader, ackNumber)
+        val data = TCPPacketFactory.createResponseAckData(ipHeader, tcpHeader, ackNumber)
         try {
             writer!!.write(data)
-            packetData.addData(data)
+            packetQueue.addData(data)
         } catch (e: IOException) {
             Log.e(TAG, "Failed to send ACK packet: " + e.message)
         }
@@ -352,12 +371,12 @@ class SessionHandler private constructor() {
     /**
      * set connection as aborting so that background worker will close it.
      *
-     * @param ip  IP
-     * @param tcp TCP
+     * @param ipHeader  IP Header
+     * @param tcpHeader TCP Header
      */
-    private fun resetConnection(ip: IPv4Header, tcp: TCPHeader) {
-        val session = SessionManager.INSTANCE.getSession(ip.destinationIP, tcp.destinationPort,
-                ip.sourceIP, tcp.sourcePort)
+    private fun resetConnection(ipHeader: IPv4Header, tcpHeader: TCPHeader) {
+        val session = SessionManager.INSTANCE.getSession(ipHeader.destinationIP, tcpHeader.destinationPort,
+                ipHeader.sourceIP, tcpHeader.sourcePort)
         if (session != null) {
             session.isAbortingConnection = true
         }
@@ -366,30 +385,30 @@ class SessionHandler private constructor() {
     /**
      * create a new client's session and SYN-ACK packet data to respond to client
      *
-     * @param ip  IP
-     * @param tcp TCP
+     * @param ipHeader  IP Header
+     * @param tcpHeader TCP Header
      */
-    private fun replySynAck(ip: IPv4Header, tcp: TCPHeader) {
-        ip.identification = 0
-        val packet = TCPPacketFactory.createSynAckPacketData(ip, tcp)
+    private fun replySynAck(ipHeader: IPv4Header, tcpHeader: TCPHeader) {
+        ipHeader.identification = 0
+        val packet = TCPPacketFactory.createSynAckPacketData(ipHeader, tcpHeader)
 
-        val tcpheader = packet.transportHeader as TCPHeader
+        val tcpPacket = packet.transportHeader as TCPHeader
 
-        val session = SessionManager.INSTANCE.createNewSession(ip.destinationIP,
-                tcp.destinationPort, ip.sourceIP, tcp.sourcePort) ?: return
+        val session = SessionManager.INSTANCE.createNewSession(ipHeader.destinationIP,
+                tcpHeader.destinationPort, ipHeader.sourceIP, tcpHeader.sourcePort) ?: return
 
-        val windowScaleFactor = Math.pow(2.0, tcpheader.windowScale.toDouble()).toInt()
-        session.setSendWindowSizeAndScale(tcpheader.windowSize, windowScaleFactor)
+        val windowScaleFactor = Math.pow(2.0, tcpPacket.windowScale.toDouble()).toInt()
+        session.setSendWindowSizeAndScale(tcpPacket.windowSize, windowScaleFactor)
         Log.d(TAG, "send-window size: " + session.sendWindow)
-        session.maxSegmentSize = tcpheader.maxSegmentSize
-        session.sendUnAck = tcpheader.sequenceNumber
-        session.sendNext = tcpheader.sequenceNumber + 1
+        session.maxSegmentSize = tcpPacket.maxSegmentSize
+        session.sendUnAck = tcpPacket.sequenceNumber
+        session.sendNext = tcpPacket.sequenceNumber + 1
         //client initial sequence has been incremented by 1 and set to ack
-        session.recSequence = tcpheader.ackNumber
+        session.recSequence = tcpPacket.ackNumber
 
         try {
             writer!!.write(packet.buffer)
-            packetData.addData(packet.buffer)
+            packetQueue.addData(packet.buffer)
             Log.d(TAG, "Send SYN-ACK to client")
         } catch (e: IOException) {
             Log.e(TAG, "Error sending data to client: " + e.message)
@@ -397,9 +416,4 @@ class SessionHandler private constructor() {
 
     }
 
-    companion object {
-        private val TAG = "SessionHandler"
-
-        val instance = SessionHandler()
-    }
 }

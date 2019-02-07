@@ -366,29 +366,25 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
      * @throws IOException
      */
     @Throws(IOException::class)
-    internal fun startCapture() {
-
+    fun startCapture() {
         Log.i(TAG, "startCapture() :capture starting")
 
-        // Packets to be sent are queued in this input stream.
-        val clientReader = FileInputStream(fileDescriptor!!.fileDescriptor)
-
-        // Packets received need to be written to this output stream.
-        val clientWriter = FileOutputStream(fileDescriptor!!.fileDescriptor)
+        val clientReader = FileInputStream(fileDescriptor!!.fileDescriptor) // input stream
+        val clientWriter = FileOutputStream(fileDescriptor!!.fileDescriptor) // output stream
 
         // Allocate the buffer for a single packet.
         val packet = ByteBuffer.allocate(MAX_PACKET_LEN)
         val clientPacketWriter = ClientPacketWriterImpl(clientWriter)
 
-        val handler = SessionHandler.instance
-        handler.setWriter(clientPacketWriter)
+        val sessionHandler = SessionHandler.instance
+        sessionHandler.setWriter(clientPacketWriter)
 
-        // background task for non-blocking socket
+        // 백그라운드에서 non-blocking 소켓에 쓰는 부분
         dataService = SocketNIODataService(clientPacketWriter)
         dataServiceThread = Thread(dataService)
         dataServiceThread!!.start()
 
-        // background task for writing packet data to pcap file
+        // pcap 파일 만드는 곳
         socketDataPublisher = SocketDataPublisher()
         socketDataPublisher!!.subscribe(this)
         packetQueueThread = Thread(socketDataPublisher)
@@ -397,14 +393,15 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
         var data: ByteArray
         var length: Int
         serviceValid = true
+
+        // VPN Client 로부터 패킷을 읽는 부분
         while (serviceValid) {
-            // read packet from vpn client
             data = packet.array()
             length = clientReader.read(data)
             if (length > 0) {
                 try {
-                    packet.limit(length)
-                    handler.handlePacket(packet)
+                    packet.limit(length) // 포인터의 끝
+                    sessionHandler.handlePacket(packet)
                 } catch (e: PacketHeaderException) {
                     Log.e(TAG, e.message)
                 }
@@ -416,7 +413,6 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
                 } catch (e: InterruptedException) {
                     Log.d(TAG, "Failed to sleep: " + e.message)
                 }
-
             }
         }
         Log.i(TAG, "capture finished: serviceValid = $serviceValid")

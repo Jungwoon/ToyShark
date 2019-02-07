@@ -18,8 +18,8 @@ package com.lipisoft.toyshark.transport.tcp
 
 import android.util.Log
 
-import com.lipisoft.toyshark.Packet
-import com.lipisoft.toyshark.PacketManager
+import com.lipisoft.toyshark.packet.Packet
+import com.lipisoft.toyshark.packet.PacketManager
 import com.lipisoft.toyshark.network.ip.IPPacketFactory
 import com.lipisoft.toyshark.network.ip.IPv4Header
 import com.lipisoft.toyshark.util.PacketUtil

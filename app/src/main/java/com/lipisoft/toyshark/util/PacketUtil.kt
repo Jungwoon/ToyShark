@@ -37,7 +37,7 @@ import kotlin.experimental.or
  * Date: May 8, 2014
  */
 object PacketUtil {
-    private val TAG = "PacketUtil"
+    private const val TAG = "PacketUtil"
 
     @Volatile
     private var packetId = 0
@@ -234,7 +234,7 @@ object PacketUtil {
         var sum = 0
         while (start < length) {
             sum += PacketUtil.getNetworkInt(data, start, 2)
-            start = start + 2
+            start += 2
         }
         //carry over one's complement
         while (sum shr 16 > 0) {
@@ -251,8 +251,8 @@ object PacketUtil {
         return checksum
     }
 
-    fun calculateTCPHeaderChecksum(data: ByteArray, offset: Int, tcplength: Int, destip: Int, sourceip: Int): ByteArray {
-        var buffersize = tcplength + 12
+    fun calculateTCPHeaderChecksum(data: ByteArray, offset: Int, tcpLength: Int, destIP: Int, sourceIP: Int): ByteArray {
+        var buffersize = tcpLength + 12
         var odd = false
         if (buffersize % 2 != 0) {
             buffersize++
@@ -262,14 +262,14 @@ object PacketUtil {
         buffer.order(ByteOrder.BIG_ENDIAN)
 
         //create virtual header
-        buffer.putInt(sourceip)
-        buffer.putInt(destip)
+        buffer.putInt(sourceIP)
+        buffer.putInt(destIP)
         buffer.put(0.toByte())//reserved => 0
         buffer.put(6.toByte())//tcp protocol => 6
-        buffer.putShort(tcplength.toShort())
+        buffer.putShort(tcpLength.toShort())
 
         //add actual header + data
-        buffer.put(data, offset, tcplength)
+        buffer.put(data, offset, tcpLength)
 
         //padding last byte to zero
         if (odd) {
@@ -286,27 +286,26 @@ object PacketUtil {
                 (addressInt and 0x000000FF).toString()
     }
 
-    fun getUDPOutput(ipheader: IPv4Header, udp: UDPHeader): String {
-        return "\r\nIP Version: " + ipheader.ipVersion +
-                "\r\nProtocol: " + ipheader.protocol +
-                "\r\nID# " + ipheader.identification +
-                "\r\nIP Total Length: " + ipheader.totalLength +
-                "\r\nIP Header length: " + ipheader.ipHeaderLength +
-                "\r\nIP checksum: " + ipheader.headerChecksum +
-                "\r\nMay fragement? " + ipheader.isMayFragment +
-                "\r\nLast fragment? " + ipheader.lastFragment +
-                "\r\nFlag: " + ipheader.flag +
-                "\r\nFragment Offset: " + ipheader.fragmentOffset +
-                "\r\nDest: " + intToIPAddress(ipheader.destinationIP) +
-                ":" + udp.destinationPort +
-                "\r\nSrc: " + intToIPAddress(ipheader.sourceIP) +
-                ":" + udp.sourcePort +
-                "\r\nUDP Length: " + udp.length +
-                "\r\nUDP Checksum: " + udp.checksum
+    fun getUDPOutput(ipHeader: IPv4Header, udpHeader: UDPHeader): String {
+        return "\r\nIP Version: " + ipHeader.ipVersion +
+                "\r\nProtocol: " + ipHeader.protocol +
+                "\r\nID# " + ipHeader.identification +
+                "\r\nIP Total Length: " + ipHeader.totalLength +
+                "\r\nIP Header length: " + ipHeader.ipHeaderLength +
+                "\r\nIP checksum: " + ipHeader.headerChecksum +
+                "\r\nMay fragement? " + ipHeader.isMayFragment +
+                "\r\nLast fragment? " + ipHeader.lastFragment +
+                "\r\nFlag: " + ipHeader.flag +
+                "\r\nFragment Offset: " + ipHeader.fragmentOffset +
+                "\r\nDest: " + intToIPAddress(ipHeader.destinationIP) +
+                ":" + udpHeader.destinationPort +
+                "\r\nSrc: " + intToIPAddress(ipHeader.sourceIP) +
+                ":" + udpHeader.sourcePort +
+                "\r\nUDP Length: " + udpHeader.length +
+                "\r\nUDP Checksum: " + udpHeader.checksum
     }
 
-    fun getOutput(ipHeader: IPv4Header, tcpheader: TCPHeader,
-                  packetData: ByteArray): String {
+    fun getOutput(ipHeader: IPv4Header, tcpHeader: TCPHeader, packetData: ByteArray): String {
         val tcpLength = (packetData.size - ipHeader.ipHeaderLength).toShort()
         val isValidChecksum = PacketUtil.isValidTCPChecksum(
                 ipHeader.sourceIP, ipHeader.destinationIP,
@@ -314,7 +313,7 @@ object PacketUtil {
         val isValidIPChecksum = PacketUtil.isValidIPChecksum(packetData,
                 ipHeader.ipHeaderLength)
         val packetBodyLength = (packetData.size - ipHeader.ipHeaderLength
-                - tcpheader.tcpHeaderLength)
+                - tcpHeader.tcpHeaderLength)
 
         val str = StringBuilder("\r\nIP Version: ")
                 .append(ipHeader.ipVersion.toInt())
@@ -323,75 +322,80 @@ object PacketUtil {
                 .append("\r\nTotal Length: ").append(ipHeader.totalLength)
                 .append("\r\nData Length: ").append(packetBodyLength)
                 .append("\r\nDest: ").append(intToIPAddress(ipHeader.destinationIP))
-                .append(":").append(tcpheader.destinationPort)
+                .append(":").append(tcpHeader.destinationPort)
                 .append("\r\nSrc: ").append(intToIPAddress(ipHeader.sourceIP))
-                .append(":").append(tcpheader.sourcePort)
-                .append("\r\nACK: ").append(tcpheader.ackNumber)
-                .append("\r\nSeq: ").append(tcpheader.sequenceNumber)
+                .append(":").append(tcpHeader.sourcePort)
+                .append("\r\nACK: ").append(tcpHeader.ackNumber)
+                .append("\r\nSeq: ").append(tcpHeader.sequenceNumber)
                 .append("\r\nIP Header length: ").append(ipHeader.ipHeaderLength)
-                .append("\r\nTCP Header length: ").append(tcpheader.tcpHeaderLength)
-                .append("\r\nACK: ").append(tcpheader.isACK)
-                .append("\r\nSYN: ").append(tcpheader.isSYN)
-                .append("\r\nCWR: ").append(tcpheader.isCWR)
-                .append("\r\nECE: ").append(tcpheader.isECE)
-                .append("\r\nFIN: ").append(tcpheader.isFIN)
-                .append("\r\nNS: ").append(tcpheader.isNS)
-                .append("\r\nPSH: ").append(tcpheader.isPSH)
-                .append("\r\nRST: ").append(tcpheader.isRST)
-                .append("\r\nURG: ").append(tcpheader.isURG)
+                .append("\r\nTCP Header length: ").append(tcpHeader.tcpHeaderLength)
+                .append("\r\nACK: ").append(tcpHeader.isACK)
+                .append("\r\nSYN: ").append(tcpHeader.isSYN)
+                .append("\r\nCWR: ").append(tcpHeader.isCWR)
+                .append("\r\nECE: ").append(tcpHeader.isECE)
+                .append("\r\nFIN: ").append(tcpHeader.isFIN)
+                .append("\r\nNS: ").append(tcpHeader.isNS)
+                .append("\r\nPSH: ").append(tcpHeader.isPSH)
+                .append("\r\nRST: ").append(tcpHeader.isRST)
+                .append("\r\nURG: ").append(tcpHeader.isURG)
                 .append("\r\nIP checksum: ").append(ipHeader.headerChecksum)
                 .append("\r\nIs Valid IP Checksum: ").append(isValidIPChecksum)
-                .append("\r\nTCP Checksum: ").append(tcpheader.checksum)
+                .append("\r\nTCP Checksum: ").append(tcpHeader.checksum)
                 .append("\r\nIs Valid TCP checksum: ").append(isValidChecksum)
                 .append("\r\nMay fragement? ").append(ipHeader.isMayFragment)
                 .append("\r\nLast fragment? ").append(ipHeader.lastFragment)
                 .append("\r\nFlag: ").append(ipHeader.flag.toInt())
                 .append("\r\nFragment Offset: ").append(ipHeader.fragmentOffset.toInt())
-                .append("\r\nWindow: ").append(tcpheader.windowSize)
-                .append("\r\nWindow scale: ").append(tcpheader.windowScale)
-                .append("\r\nData Offset: ").append(tcpheader.dataOffset)
+                .append("\r\nWindow: ").append(tcpHeader.windowSize)
+                .append("\r\nWindow scale: ").append(tcpHeader.windowScale)
+                .append("\r\nData Offset: ").append(tcpHeader.dataOffset)
 
-        val options = tcpheader.options
+        val options = tcpHeader.options
         if (options != null) {
             str.append("\r\nTCP Options: \r\n..........")
             var i = 0
             while (i < options.size) {
                 val kind = options[i]
-                if (kind.toInt() == 0) {
-                    str.append("\r\n...End of options packetList")
-                } else if (kind.toInt() == 1) {
-                    str.append("\r\n...NOP")
-                } else if (kind.toInt() == 2) {
-                    i += 2
-                    val maxSegmentSize = PacketUtil.getNetworkInt(options, i, 2)
-                    i++
-                    str.append("\r\n...Max Seg Size: ").append(maxSegmentSize)
-                } else if (kind.toInt() == 3) {
-                    i += 2
-                    val windowSize = PacketUtil.getNetworkInt(options, i, 1)
-                    str.append("\r\n...Window Scale: ").append(windowSize)
-                } else if (kind.toInt() == 4) {
-                    i++
-                    str.append("\r\n...Selective Ack")
-                } else if (kind.toInt() == 5) {
-                    i = i + options[++i] - 2
-                    str.append("\r\n...selective ACK (SACK)")
-                } else if (kind.toInt() == 8) {
-                    i += 2
-                    val timeStampValue = PacketUtil.getNetworkInt(options, i, 4)
-                    i += 4
-                    val timeStampEchoReply = PacketUtil.getNetworkInt(options, i, 4)
-                    i += 3
-                    str.append("\r\n...Timestamp: ").append(timeStampValue)
-                            .append("-").append(timeStampEchoReply)
-                } else if (kind.toInt() == 14) {
-                    i += 2
-                    str.append("\r\n...Alternative Checksum request")
-                } else if (kind.toInt() == 15) {
-                    i = i + options[++i] - 2
-                    str.append("\r\n...TCP Alternate Checksum Data")
-                } else {
-                    str.append("\r\n... unknown option# ").append(kind.toInt())
+                when {
+                    kind.toInt() == 0 -> str.append("\r\n...End of options packetList")
+                    kind.toInt() == 1 -> str.append("\r\n...NOP")
+                    kind.toInt() == 2 -> {
+                        i += 2
+                        val maxSegmentSize = PacketUtil.getNetworkInt(options, i, 2)
+                        i++
+                        str.append("\r\n...Max Seg Size: ").append(maxSegmentSize)
+                    }
+                    kind.toInt() == 3 -> {
+                        i += 2
+                        val windowSize = PacketUtil.getNetworkInt(options, i, 1)
+                        str.append("\r\n...Window Scale: ").append(windowSize)
+                    }
+                    kind.toInt() == 4 -> {
+                        i++
+                        str.append("\r\n...Selective Ack")
+                    }
+                    kind.toInt() == 5 -> {
+                        i = i + options[++i] - 2
+                        str.append("\r\n...selective ACK (SACK)")
+                    }
+                    kind.toInt() == 8 -> {
+                        i += 2
+                        val timeStampValue = PacketUtil.getNetworkInt(options, i, 4)
+                        i += 4
+                        val timeStampEchoReply = PacketUtil.getNetworkInt(options, i, 4)
+                        i += 3
+                        str.append("\r\n...Timestamp: ").append(timeStampValue)
+                                .append("-").append(timeStampEchoReply)
+                    }
+                    kind.toInt() == 14 -> {
+                        i += 2
+                        str.append("\r\n...Alternative Checksum request")
+                    }
+                    kind.toInt() == 15 -> {
+                        i = i + options[++i] - 2
+                        str.append("\r\n...TCP Alternate Checksum Data")
+                    }
+                    else -> str.append("\r\n... unknown option# ").append(kind.toInt())
                             .append(", int: ").append(kind.toInt())
                 }
                 i++

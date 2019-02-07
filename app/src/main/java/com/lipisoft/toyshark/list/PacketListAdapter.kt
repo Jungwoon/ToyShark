@@ -3,11 +3,9 @@ package com.lipisoft.toyshark.list
 import android.annotation.SuppressLint
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 
-import com.lipisoft.toyshark.Packet
+import com.lipisoft.toyshark.packet.Packet
 import com.lipisoft.toyshark.R
 import com.lipisoft.toyshark.util.PacketUtil
 

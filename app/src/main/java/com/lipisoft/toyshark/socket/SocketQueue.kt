@@ -25,10 +25,10 @@ import java.util.Queue
  * @author Borey Sao
  * Date: May 12, 2014
  */
-class SocketData {
+class SocketQueue {
 
     companion object {
-        val instance = SocketData()
+        val instance = SocketQueue()
     }
 
     private var data: Queue<ByteArray>? = LinkedList()

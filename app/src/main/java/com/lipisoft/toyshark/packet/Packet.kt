@@ -14,7 +14,7 @@
  * limitations under the License.
 */
 
-package com.lipisoft.toyshark
+package com.lipisoft.toyshark.packet
 
 import com.lipisoft.toyshark.network.ip.IPv4Header
 import com.lipisoft.toyshark.transport.ITransportHeader

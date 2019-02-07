@@ -15,16 +15,13 @@ import java.io.OutputStream
  * @author roni bar yanai
  * @since java 1.5
  */
-class PCapFileWriter
-/**
- * open new file
- *
- * @param file file
- * @param append append or not
- * @throws IOException - on file creation failure.
- */
-@Throws(IOException::class)
-private constructor(file: File?, append: Boolean) : CaptureFileWriter() {
+
+class PCapFileWriter(file: File?, append: Boolean) : CaptureFileWriter() {
+
+    companion object {
+        const val MAX_PACKET_SIZE = 65356
+        private const val DEFAULT_LIMIT = 100000000000L
+    }
 
     // limit the file size
     private val myLimit = DEFAULT_LIMIT
@@ -44,8 +41,7 @@ private constructor(file: File?, append: Boolean) : CaptureFileWriter() {
     /**
      * @return time stamp in nano seconds
      */
-    private val nanoTime: Long
-        get() = System.nanoTime()
+    private val nanoTime = System.nanoTime()
 
     /**
      * open new file
@@ -53,7 +49,7 @@ private constructor(file: File?, append: Boolean) : CaptureFileWriter() {
      * @param file file
      * @throws IOException - on file creation failure.
      */
-    @Throws(IOException::class)
+
     constructor(file: File) : this(file, false)
 
     init {
@@ -71,12 +67,12 @@ private constructor(file: File?, append: Boolean) : CaptureFileWriter() {
      */
     @Throws(IOException::class)
     private fun init(file: File, append: Boolean) {
-        val putHdr = !file.exists() || !append
+        val putHeader = !file.exists() || !append
 
         outputStream = FileOutputStream(file, append)
 
         // put hdr only if not appending or file not exits (new file).
-        if (putHdr) {
+        if (putHeader) {
             val hdr = PCapFileHeader()
             outputStream!!.write(hdr.asByteArray)
         }
@@ -185,8 +181,4 @@ private constructor(file: File?, append: Boolean) : CaptureFileWriter() {
         }
     }
 
-    companion object {
-        val MAX_PACKET_SIZE = 65356
-        private val DEFAULT_LIMIT = 100000000000L
-    }
 }
