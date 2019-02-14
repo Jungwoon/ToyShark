@@ -47,6 +47,7 @@ enum class SessionManager {
     private val TAG = "SessionManager"
     private val concurrentHashMap = ConcurrentHashMap<String, Session>()
     private val protector = SocketProtector.getInstance()
+
     var selector: Selector? = null
 
     init {
@@ -55,7 +56,6 @@ enum class SessionManager {
 
     /**
      * keep java garbage collector from collecting a session
-     *
      * @param session Session
      */
     fun keepSessionAlive(session: Session) {
@@ -65,17 +65,9 @@ enum class SessionManager {
                 session.sourceIp,
                 session.sourcePort)
 
+        // 만들어진 키는 해쉬맵에 저장
+        // key는 중복이 되지 않기 때문에 유일함
         concurrentHashMap[key] = session
-    }
-
-    private fun getRemainingBytes(buffer: ByteBuffer): ByteArray {
-        val length = buffer.limit() - buffer.position()
-        val remainingBytes = ByteArray(length)
-
-        for (i in 0 until length)
-            remainingBytes[i] = buffer.get()
-
-        return remainingBytes
     }
 
     /**
@@ -87,7 +79,9 @@ enum class SessionManager {
     fun addClientData(buffer: ByteBuffer, session: Session): Int {
         if (buffer.limit() <= buffer.position())
             return 0
+
         val payload = getRemainingBytes(buffer)
+
         // appending data to buffer
         session.setSendingData(payload)
         return payload.size
@@ -183,30 +177,30 @@ enum class SessionManager {
 
         val session = Session(srcIp, srcPort, destIp, destPort)
 
-        val channel: DatagramChannel
+        val datagramChannel: DatagramChannel
 
         try {
-            channel = DatagramChannel.open()
-            channel.socket().soTimeout = 0
-            channel.configureBlocking(false)
+            datagramChannel = DatagramChannel.open()
+            datagramChannel.socket().soTimeout = 0
+            datagramChannel.configureBlocking(false)
 
         } catch (e: IOException) {
             e.printStackTrace()
             return null
         }
 
-        protector!!.protect(channel.socket())
+        protector!!.protect(datagramChannel.socket())
 
         // initiate connection to reduce latency
-        val ips = PacketUtil.intToIPAddress(destIp)
+        val ip = PacketUtil.intToIPAddress(destIp)
         val sourceIpAddress = PacketUtil.intToIPAddress(srcIp)
-        val socketAddress = InetSocketAddress(ips, destPort)
-        Log.d(TAG, "initialized connection to remote UDP server: " + ips + ":" +
+        val socketAddress = InetSocketAddress(ip, destPort)
+        Log.d(TAG, "initialized connection to remote UDP server: " + ip + ":" +
                 destPort + " from " + sourceIpAddress + ":" + srcPort)
 
         try {
-            channel.connect(socketAddress)
-            session.isConnected = channel.isConnected
+            datagramChannel.connect(socketAddress)
+            session.isConnected = datagramChannel.isConnected
         } catch (e: IOException) {
             e.printStackTrace()
             return null
@@ -216,11 +210,10 @@ enum class SessionManager {
             synchronized(SocketNIODataService.syncSelector2) {
                 selector!!.wakeup()
                 synchronized(SocketNIODataService.syncSelector) {
-                    val selectionKey: SelectionKey
-                    if (channel.isConnected) {
-                        selectionKey = channel.register(selector, SelectionKey.OP_READ or SelectionKey.OP_WRITE)
+                    val selectionKey: SelectionKey = if (datagramChannel.isConnected) {
+                        datagramChannel.register(selector, SelectionKey.OP_READ or SelectionKey.OP_WRITE)
                     } else {
-                        selectionKey = channel.register(selector, SelectionKey.OP_CONNECT or SelectionKey.OP_READ or
+                        datagramChannel.register(selector, SelectionKey.OP_CONNECT or SelectionKey.OP_READ or
                                 SelectionKey.OP_WRITE)
                     }
                     session.selectionKey = selectionKey
@@ -233,11 +226,11 @@ enum class SessionManager {
             return null
         }
 
-        session.channel = channel
+        session.channel = datagramChannel
 
         if (concurrentHashMap.containsKey(keys)) {
             try {
-                channel.close()
+                datagramChannel.close()
             } catch (e: IOException) {
                 e.printStackTrace()
                 return null
@@ -250,8 +243,8 @@ enum class SessionManager {
         return session
     }
 
-    // 새로운 세션 생성
-    fun createNewSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
+    // 새로운 TCP 세션 생성
+    fun createNewTCPSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
         val key = createKey(
                 destIp,
                 destPort,
@@ -282,7 +275,7 @@ enum class SessionManager {
             return null
         }
 
-        val ips = PacketUtil.intToIPAddress(destIp)
+        val ip = PacketUtil.intToIPAddress(destIp)
         Log.d(TAG, "created new SocketChannel for $key")
 
         protector!!.protect(channel.socket())
@@ -290,9 +283,11 @@ enum class SessionManager {
         Log.d(TAG, "Protected new SocketChannel")
 
         // initiate connection to reduce latency
-        val socketAddress = InetSocketAddress(ips, destPort)
-        Log.d(TAG, "initiate connecting to remote tcp server: $ips:$destPort")
+        val socketAddress = InetSocketAddress(ip, destPort)
+        Log.d(TAG, "initiate connecting to remote tcp server: $ip:$destPort")
+
         val connected: Boolean
+
         try {
             connected = channel.connect(socketAddress)
         } catch (e: IOException) {
@@ -303,13 +298,16 @@ enum class SessionManager {
         session.isConnected = connected
 
         // register for non-blocking operation
+        // 논블록킹 처리
         try {
             synchronized(SocketNIODataService.syncSelector2) {
                 selector!!.wakeup()
                 synchronized(SocketNIODataService.syncSelector) {
-                    val selectionKey = channel.register(selector,
-                            SelectionKey.OP_CONNECT or SelectionKey.OP_READ or
-                                    SelectionKey.OP_WRITE)
+                    val selectionKey = channel.register(
+                            selector,
+                            SelectionKey.OP_CONNECT
+                                    or SelectionKey.OP_READ
+                                    or SelectionKey.OP_WRITE)
                     session.selectionKey = selectionKey
                     Log.d(TAG, "Registered tcp selector successfully")
                 }
@@ -348,5 +346,15 @@ enum class SessionManager {
     fun createKey(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): String {
         return PacketUtil.intToIPAddress(srcIp) + ":" + srcPort + "-" +
                 PacketUtil.intToIPAddress(destIp) + ":" + destPort
+    }
+
+    private fun getRemainingBytes(buffer: ByteBuffer): ByteArray {
+        val length = buffer.limit() - buffer.position()
+        val remainingBytes = ByteArray(length)
+
+        for (i in 0 until length)
+            remainingBytes[i] = buffer.get()
+
+        return remainingBytes
     }
 }

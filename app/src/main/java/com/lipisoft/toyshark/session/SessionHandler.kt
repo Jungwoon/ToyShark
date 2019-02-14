@@ -24,7 +24,7 @@ import com.lipisoft.toyshark.packet.Packet
 import com.lipisoft.toyshark.packet.PacketManager
 import com.lipisoft.toyshark.network.ip.IPPacketFactory
 import com.lipisoft.toyshark.network.ip.IPv4Header
-import com.lipisoft.toyshark.socket.SocketQueue
+import com.lipisoft.toyshark.socket.PacketQueue
 import com.lipisoft.toyshark.transport.tcp.PacketHeaderException
 import com.lipisoft.toyshark.transport.tcp.TCPHeader
 import com.lipisoft.toyshark.transport.tcp.TCPPacketFactory
@@ -42,7 +42,7 @@ import android.util.Log
  */
 class SessionHandler private constructor() {
     private var writer: ClientPacketWriter? = null
-    private val packetQueue: SocketQueue = SocketQueue.instance
+    private val packetQueue: PacketQueue = PacketQueue.instance
 
     companion object {
         private const val TAG = "SessionHandler"
@@ -54,9 +54,8 @@ class SessionHandler private constructor() {
         this.writer = writer
     }
 
-
     /**
-     * VPN Client로부터 패킷이 들어왔을때, TCP, UDP 별로 처
+     * VPN Client로부터 패킷이 들어왔을때, TCP, UDP 별로 처리
      *
      * @param stream ByteBuffer to be read
      */
@@ -67,12 +66,14 @@ class SessionHandler private constructor() {
         packetQueue.addData(rawPacket)
         stream.rewind()
 
+        // fileDescriptor로부터 들어온 stream 을 IPv4 형태로 변환
         val ipHeader = IPPacketFactory.createIPv4Header(stream)
         val transportHeader: ITransportHeader
 
         val tcp = 6
         val udp = 17
 
+        // 위에서 변환된 ipHeader가 tcp인지 udp인지 확인하는 부분
         when {
             ipHeader.protocol.toInt() == tcp -> transportHeader = TCPPacketFactory.createTCPHeader(stream)
             ipHeader.protocol.toInt() == udp -> transportHeader = UDPPacketFactory.createUDPHeader(stream)
@@ -394,7 +395,7 @@ class SessionHandler private constructor() {
 
         val tcpPacket = packet.transportHeader as TCPHeader
 
-        val session = SessionManager.INSTANCE.createNewSession(ipHeader.destinationIP,
+        val session = SessionManager.INSTANCE.createNewTCPSession(ipHeader.destinationIP,
                 tcpHeader.destinationPort, ipHeader.sourceIP, tcpHeader.sourcePort) ?: return
 
         val windowScaleFactor = Math.pow(2.0, tcpPacket.windowScale.toDouble()).toInt()

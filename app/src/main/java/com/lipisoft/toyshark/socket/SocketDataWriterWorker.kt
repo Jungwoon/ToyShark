@@ -72,6 +72,44 @@ class SocketDataWriterWorker(writer: ClientPacketWriter, private val sessionKey:
         }
     }
 
+    private fun writeTCP(session: Session) {
+        val channel = session.channel as SocketChannel
+
+        val name = PacketUtil.intToIPAddress(session.destIp) + ":" + session.destPort +
+                "-" + PacketUtil.intToIPAddress(session.sourceIp) + ":" + session.sourcePort
+
+        val data = session.getSendingData()
+        val buffer = ByteBuffer.allocate(data.size)
+        buffer.put(data)
+        buffer.flip()
+
+        try {
+            Log.d(TAG, "writing TCP data to: $name")
+            channel.write(buffer)
+            //Log.d(TAG,"finished writing data to: "+name);
+        } catch (ex: NotYetConnectedException) {
+            Log.e(TAG, "failed to write to unconnected socket: " + ex.message)
+        } catch (e: IOException) {
+            Log.e(TAG, "Error writing to server: " + e.message)
+
+            //close connection with vpn client
+            val rstData = TCPPacketFactory.createRstData(
+                    session.lastIpHeader!!, session.lastTcpHeader!!, 0)
+            try {
+                writer!!.write(rstData)
+                val socketData = PacketQueue.instance
+                socketData.addData(rstData)
+            } catch (ex: IOException) {
+                ex.printStackTrace()
+            }
+
+            //remove session
+            Log.e(TAG, "failed to write to remote socket, aborting connection")
+            session.isAbortingConnection = true
+        }
+
+    }
+
     private fun writeUDP(session: Session) {
         if (!session.hasDataToSend()) {
             return
@@ -99,44 +137,6 @@ class SocketDataWriterWorker(writer: ClientPacketWriter, private val sessionKey:
             session.isAbortingConnection = true
             e.printStackTrace()
             Log.e(TAG, "Error writing to UDP server, will abort connection: " + e.message)
-        }
-
-    }
-
-    private fun writeTCP(session: Session) {
-        val channel = session.channel as SocketChannel
-
-        val name = PacketUtil.intToIPAddress(session.destIp) + ":" + session.destPort +
-                "-" + PacketUtil.intToIPAddress(session.sourceIp) + ":" + session.sourcePort
-
-        val data = session.getSendingData()
-        val buffer = ByteBuffer.allocate(data.size)
-        buffer.put(data)
-        buffer.flip()
-
-        try {
-            Log.d(TAG, "writing TCP data to: $name")
-            channel.write(buffer)
-            //Log.d(TAG,"finished writing data to: "+name);
-        } catch (ex: NotYetConnectedException) {
-            Log.e(TAG, "failed to write to unconnected socket: " + ex.message)
-        } catch (e: IOException) {
-            Log.e(TAG, "Error writing to server: " + e.message)
-
-            //close connection with vpn client
-            val rstData = TCPPacketFactory.createRstData(
-                    session.lastIpHeader!!, session.lastTcpHeader!!, 0)
-            try {
-                writer!!.write(rstData)
-                val socketData = SocketQueue.instance
-                socketData.addData(rstData)
-            } catch (ex: IOException) {
-                ex.printStackTrace()
-            }
-
-            //remove session
-            Log.e(TAG, "failed to write to remote socket, aborting connection")
-            session.isAbortingConnection = true
         }
 
     }

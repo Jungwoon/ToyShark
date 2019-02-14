@@ -175,7 +175,7 @@ public class SessionManagerTest {
     @NonNull
     private Session makeNewTcpSession() {
         final int destinationAddress = getTcpAddress();
-        final Session session = SessionManager.INSTANCE.createNewSession(destinationAddress, 443, 0, 1);
+        final Session session = SessionManager.INSTANCE.createNewTCPSession(destinationAddress, 443, 0, 1);
         assertNotNull(session);
         assertEquals(session, SessionManager.INSTANCE.getSession(destinationAddress, 443, 0, 1));
         return session;
