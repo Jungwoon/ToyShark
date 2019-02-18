@@ -97,8 +97,7 @@ class SocketDataWriterWorker(writer: ClientPacketWriter, private val sessionKey:
                     session.lastIpHeader!!, session.lastTcpHeader!!, 0)
             try {
                 writer!!.write(rstData)
-                val socketData = PacketQueue.instance
-                socketData.addData(rstData)
+                PacketQueue.instance.addPacket(rstData)
             } catch (ex: IOException) {
                 ex.printStackTrace()
             }

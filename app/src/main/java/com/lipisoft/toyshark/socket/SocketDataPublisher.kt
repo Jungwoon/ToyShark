@@ -52,7 +52,7 @@ class SocketDataPublisher : Runnable {
         Log.d(TAG, "BackgroundWriter starting...")
 
         while (!isShuttingDown) {
-            val packetData = packetQueue.getData()
+            val packetData = packetQueue.getPacket()
 
             if (packetData != null) {
                 for (subscriber in subscribers) {

@@ -19,8 +19,8 @@ import java.util.LinkedList
 import java.util.Queue
 
 /**
- * Singleton data structure for storing packet data in queue. Data is pushed into this queue from
- * VpnService as well as background worker that pull data from remote socket.
+ * Singleton packet structure for storing packet packet in queue. Data is pushed into this queue from
+ * VpnService as well as background worker that pull packet from remote socket.
  *
  * @author Borey Sao
  * Date: May 12, 2014
@@ -31,15 +31,15 @@ class PacketQueue {
         val instance = PacketQueue()
     }
 
-    private var data: Queue<ByteArray>? = LinkedList()
+    private var packet: Queue<ByteArray>? = LinkedList()
 
     @Synchronized
-    fun addData(packet: ByteArray) {
-        data?.add(packet)
+    fun addPacket(packet: ByteArray) {
+        this.packet?.add(packet)
     }
 
     @Synchronized
-    fun getData(): ByteArray? {
-        return data?.poll()
+    fun getPacket(): ByteArray? {
+        return packet?.poll()
     }
 }

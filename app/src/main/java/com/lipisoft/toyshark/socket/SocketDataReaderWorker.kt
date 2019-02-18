@@ -27,7 +27,10 @@ import java.util.Date
  * @author Borey Sao
  * Date: July 30, 2014
  */
-internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, private val sessionKey: String) : Runnable {
+internal class SocketDataReaderWorker(
+        private val writer: ClientPacketWriter,
+        private val sessionKey: String) : Runnable {
+
     private val packetQueue: PacketQueue = PacketQueue.instance
 
     companion object {
@@ -159,19 +162,26 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
         } else if (max > PCapFileWriter.MAX_PACKET_SIZE - 60) {
             max = PCapFileWriter.MAX_PACKET_SIZE - 60
         }
+
         val packetBody = session.getReceivedData(max)
         if (packetBody.isNotEmpty()) {
             val unAck = session.sendNext
             val nextUnAck = session.sendNext + packetBody.size
             session.sendNext = nextUnAck
 
-            val data = TCPPacketFactory.createResponsePacketData(ipHeader,
-                    tcpheader, packetBody, session.hasReceivedLastSegment,
-                    session.recSequence, unAck,
-                    session.timestampSender, session.timestampReplyTo)
+            val responsePacketData = TCPPacketFactory.createResponsePacketData(
+                    ipHeader,
+                    tcpheader,
+                    packetBody,
+                    session.hasReceivedLastSegment,
+                    session.recSequence,
+                    unAck,
+                    session.timestampSender,
+                    session.timestampReplyTo)
+
             try {
-                writer.write(data)
-                packetQueue.addData(data)
+                writer.write(responsePacketData)
+                packetQueue.addPacket(responsePacketData)
             } catch (e: IOException) {
                 Log.e(TAG, "Failed to send ACK + Data packet: " + e.message)
             }
@@ -187,7 +197,7 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
                 session.timestampSender, session.timestampReplyTo)
         try {
             writer.write(data)
-            packetQueue.addData(data)
+            packetQueue.addPacket(data)
         } catch (e: IOException) {
             Log.e(TAG, "Failed to send FIN packet: " + e.message)
         }
@@ -219,7 +229,7 @@ internal class SocketDataReaderWorker(private val writer: ClientPacketWriter, pr
                     //write to client
                     writer.write(packetData)
                     //publish to packet subscriber
-                    packetQueue.addData(packetData)
+                    packetQueue.addPacket(packetData)
                     Log.d(TAG, "SDR: sent " + len + " bytes to UDP client, packetData.length: "
                             + packetData.size)
                     buffer.clear()

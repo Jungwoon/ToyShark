@@ -164,6 +164,94 @@ enum class SessionManager {
         Log.d(TAG, "closed session -> $key")
     }
 
+    // 새로운 TCP 세션 생성
+    fun createNewTCPSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
+        val key = createKey(
+                destIp,
+                destPort,
+                srcIp,
+                srcPort)
+
+        if (concurrentHashMap.containsKey(key)) {
+            Log.e(TAG, "Session was already created.")
+            return null
+        }
+
+        val session = Session(srcIp, srcPort, destIp, destPort)
+
+        val socketChannel: SocketChannel
+
+        try {
+            socketChannel = SocketChannel.open()
+            socketChannel.socket().keepAlive = true
+            socketChannel.socket().tcpNoDelay = true
+            socketChannel.socket().soTimeout = 0
+            socketChannel.socket().receiveBufferSize = DataConst.MAX_RECEIVE_BUFFER_SIZE
+            socketChannel.configureBlocking(false)
+        } catch (e: SocketException) {
+            Log.e(TAG, e.toString())
+            return null
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to create SocketChannel: " + e.message)
+            return null
+        }
+
+        val ip = PacketUtil.intToIPAddress(destIp)
+        Log.d(TAG, "created new SocketChannel for $key")
+
+        protector!!.protect(socketChannel.socket())
+
+        Log.d(TAG, "Protected new SocketChannel")
+
+        // initiate connection to reduce latency
+        val socketAddress = InetSocketAddress(ip, destPort)
+        Log.d(TAG, "initiate connecting to remote tcp server: $ip:$destPort")
+
+        val connected: Boolean
+
+        try {
+            connected = socketChannel.connect(socketAddress)
+        } catch (e: IOException) {
+            Log.e(TAG, e.toString())
+            return null
+        }
+
+        session.isConnected = connected
+
+        // register for non-blocking operation
+        // 논블록킹 처리
+        try {
+            synchronized(SocketNIODataService.syncSelector2) {
+                selector!!.wakeup()
+                synchronized(SocketNIODataService.syncSelector) {
+                    val selectionKey = socketChannel.register(selector,
+                            SelectionKey.OP_CONNECT or SelectionKey.OP_READ or SelectionKey.OP_WRITE)
+                    session.selectionKey = selectionKey
+                    Log.d(TAG, "Registered tcp selector successfully")
+                }
+            }
+        } catch (e: ClosedChannelException) {
+            e.printStackTrace()
+            Log.e(TAG, "failed to register tcp channel with selector: " + e.message)
+            return null
+        }
+
+        session.channel = socketChannel
+
+        if (concurrentHashMap.containsKey(key)) {
+            try {
+                socketChannel.close()
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+
+            return null
+        } else {
+            concurrentHashMap[key] = session
+        }
+        return session
+    }
+
     // 새로운 UDP 세션 생성
     fun createNewUDPSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
         val keys = createKey(
@@ -240,97 +328,6 @@ enum class SessionManager {
             concurrentHashMap[keys] = session
         }
         Log.d(TAG, "new UDP session successfully created.")
-        return session
-    }
-
-    // 새로운 TCP 세션 생성
-    fun createNewTCPSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
-        val key = createKey(
-                destIp,
-                destPort,
-                srcIp,
-                srcPort)
-
-        if (concurrentHashMap.containsKey(key)) {
-            Log.e(TAG, "Session was already created.")
-            return null
-        }
-
-        val session = Session(srcIp, srcPort, destIp, destPort)
-
-        val channel: SocketChannel
-
-        try {
-            channel = SocketChannel.open()
-            channel.socket().keepAlive = true
-            channel.socket().tcpNoDelay = true
-            channel.socket().soTimeout = 0
-            channel.socket().receiveBufferSize = DataConst.MAX_RECEIVE_BUFFER_SIZE
-            channel.configureBlocking(false)
-        } catch (e: SocketException) {
-            Log.e(TAG, e.toString())
-            return null
-        } catch (e: IOException) {
-            Log.e(TAG, "Failed to create SocketChannel: " + e.message)
-            return null
-        }
-
-        val ip = PacketUtil.intToIPAddress(destIp)
-        Log.d(TAG, "created new SocketChannel for $key")
-
-        protector!!.protect(channel.socket())
-
-        Log.d(TAG, "Protected new SocketChannel")
-
-        // initiate connection to reduce latency
-        val socketAddress = InetSocketAddress(ip, destPort)
-        Log.d(TAG, "initiate connecting to remote tcp server: $ip:$destPort")
-
-        val connected: Boolean
-
-        try {
-            connected = channel.connect(socketAddress)
-        } catch (e: IOException) {
-            Log.e(TAG, e.toString())
-            return null
-        }
-
-        session.isConnected = connected
-
-        // register for non-blocking operation
-        // 논블록킹 처리
-        try {
-            synchronized(SocketNIODataService.syncSelector2) {
-                selector!!.wakeup()
-                synchronized(SocketNIODataService.syncSelector) {
-                    val selectionKey = channel.register(
-                            selector,
-                            SelectionKey.OP_CONNECT
-                                    or SelectionKey.OP_READ
-                                    or SelectionKey.OP_WRITE)
-                    session.selectionKey = selectionKey
-                    Log.d(TAG, "Registered tcp selector successfully")
-                }
-            }
-        } catch (e: ClosedChannelException) {
-            e.printStackTrace()
-            Log.e(TAG, "failed to register tcp channel with selector: " + e.message)
-            return null
-        }
-
-        session.channel = channel
-
-        if (concurrentHashMap.containsKey(key)) {
-            try {
-                channel.close()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-
-            return null
-        } else {
-            concurrentHashMap[key] = session
-        }
         return session
     }
 
