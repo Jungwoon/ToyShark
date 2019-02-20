@@ -47,18 +47,18 @@ import kotlin.experimental.or
  * @param destinationIP  IPv4 address of receiver.
  */
 class IPv4Header(
-        val ipVersion: Byte,
+        val ipVersion: Byte, // 보통 IPv4이기 때문에 4가 들어감
         val headerLength: Byte,
-        val dscp: Byte,
-        val ecn: Byte,
-        var totalLength: Int,
-        var identification: Int,
-        private var mayFragment: Boolean,
-        val lastFragment: Boolean,
-        val fragmentOffset: Short,
-        val timeToLive: Byte,
-        val protocol: Byte,
-        val headerChecksum: Int,
+        val dscp: Byte, // 어떤 데이터를 먼저 처리할지 우선순위 처리
+        val ecn: Byte, // 높으면 중요하지 않은 데이터, 낮으면 중요한 데이터
+        var totalLength: Int, // L3 헤더까지 합쳐서 데이터 전체 사이즈
+        var identification: Int, // 쪼개서 전송시에 조립하기 위한 아이디
+        private var mayFragment: Boolean, // 쪼갰는지 아닌지
+        val lastFragment: Boolean, // 마지막 조각인지 판단
+        val fragmentOffset: Short, // 쪼개진 패킷의 순서
+        val timeToLive: Byte, // Loop 방지를 위해서 라우팅할때마다 1씩 줄어들어 0이 되면 drop
+        val protocol: Byte, // IP Header 다음에 어떤 프로토콜이 오는지 정의 ex) 6(TCP)
+        val headerChecksum: Int, // Header가 정상인지 아닌지 판단
         var sourceIP: Int,
         var destinationIP: Int) {
 

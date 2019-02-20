@@ -222,7 +222,7 @@ enum class SessionManager {
         // 논블록킹 처리
         try {
             synchronized(SocketNIODataService.syncSelector2) {
-                selector!!.wakeup()
+                selector?.wakeup()
                 synchronized(SocketNIODataService.syncSelector) {
                     val selectionKey = socketChannel.register(selector,
                             SelectionKey.OP_CONNECT or SelectionKey.OP_READ or SelectionKey.OP_WRITE)
@@ -296,7 +296,7 @@ enum class SessionManager {
 
         try {
             synchronized(SocketNIODataService.syncSelector2) {
-                selector!!.wakeup()
+                selector?.wakeup()
                 synchronized(SocketNIODataService.syncSelector) {
                     val selectionKey: SelectionKey = if (datagramChannel.isConnected) {
                         datagramChannel.register(selector, SelectionKey.OP_READ or SelectionKey.OP_WRITE)
