@@ -75,6 +75,7 @@ class SessionHandler {
 
         // 위에서 변환된 ipHeader가 tcp인지 udp인지 확인하는 부분
         when {
+
             ipHeader.protocol.toInt() == tcp -> transportHeader = TCPPacketFactory.createTCPHeader(stream)
             ipHeader.protocol.toInt() == udp -> transportHeader = UDPPacketFactory.createUDPHeader(stream)
             else -> {
@@ -101,10 +102,11 @@ class SessionHandler {
     // 3-Way Handshake + create new session
     private fun handleTCPPacket(streamByteBuffer: ByteBuffer, ipHeader: IPv4Header, tcpHeader: TCPHeader) {
         val dataLength = streamByteBuffer.limit() - streamByteBuffer.position()
-        val sourceIP = ipHeader.sourceIP
+
         val destinationIP = ipHeader.destinationIP
-        val sourcePort = tcpHeader.sourcePort
         val destinationPort = tcpHeader.destinationPort
+        val sourceIP = ipHeader.sourceIP
+        val sourcePort = tcpHeader.sourcePort
 
         // Handshake 연결
         if (tcpHeader.isSYN) {

@@ -15,7 +15,10 @@ import java.nio.channels.NotYetConnectedException
 import java.nio.channels.SocketChannel
 import java.util.Date
 
-class SocketDataWriterWorker(writer: ClientPacketWriter, private val sessionKey: String) : Runnable {
+class SocketDataWriterWorker(
+        writer: ClientPacketWriter,
+        private val sessionKey: String
+) : Runnable {
 
     companion object {
         private const val TAG = "SocketDataWriterWorker"
@@ -42,6 +45,7 @@ class SocketDataWriterWorker(writer: ClientPacketWriter, private val sessionKey:
             is DatagramChannel -> writeUDP(session)
             else -> return
         }
+
         session.isBusyWrite = false
 
         if (session.isAbortingConnection) {

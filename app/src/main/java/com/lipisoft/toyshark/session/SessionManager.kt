@@ -45,7 +45,7 @@ enum class SessionManager {
     INSTANCE;
 
     private val TAG = "SessionManager"
-    private val concurrentHashMap = ConcurrentHashMap<String, Session>()
+    private val sessionHashMap = ConcurrentHashMap<String, Session>()
     private val protector = SocketProtector.getInstance()
 
     var selector: Selector? = null
@@ -67,7 +67,7 @@ enum class SessionManager {
 
         // 만들어진 키는 해쉬맵에 저장
         // key는 중복이 되지 않기 때문에 유일함
-        concurrentHashMap[key] = session
+        sessionHashMap[key] = session
     }
 
     /**
@@ -97,14 +97,14 @@ enum class SessionManager {
     }
 
     fun getSessionByKey(key: String): Session? {
-        return if (concurrentHashMap.containsKey(key)) {
-            concurrentHashMap[key]
+        return if (sessionHashMap.containsKey(key)) {
+            sessionHashMap[key]
         } else null
 
     }
 
     fun getSessionByChannel(channel: AbstractSelectableChannel): Session? {
-        val sessions = concurrentHashMap.values
+        val sessions = sessionHashMap.values
         for (session in sessions) {
             if (channel === session.channel)
                 return session
@@ -122,12 +122,14 @@ enum class SessionManager {
      * @param srcPort     Source Port
      */
     fun closeSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int) {
+
         val key = createKey(
                 destIp,
                 destPort,
                 srcIp,
                 srcPort)
-        val session = concurrentHashMap.remove(key)
+
+        val session = sessionHashMap.remove(key)
 
         if (session != null) {
             val channel = session.channel
@@ -152,7 +154,7 @@ enum class SessionManager {
                 session.sourceIp,
                 session.sourcePort)
 
-        concurrentHashMap.remove(key)
+        sessionHashMap.remove(key)
 
         try {
             val channel = session.channel
@@ -172,7 +174,7 @@ enum class SessionManager {
                 srcIp,
                 srcPort)
 
-        if (concurrentHashMap.containsKey(key)) {
+        if (sessionHashMap.containsKey(key)) {
             Log.e(TAG, "Session was already created.")
             return null
         }
@@ -224,8 +226,10 @@ enum class SessionManager {
             synchronized(SocketNIODataService.syncSelector2) {
                 selector?.wakeup()
                 synchronized(SocketNIODataService.syncSelector) {
-                    val selectionKey = socketChannel.register(selector,
-                            SelectionKey.OP_CONNECT or SelectionKey.OP_READ or SelectionKey.OP_WRITE)
+                    val selectionKey = socketChannel.register(
+                            selector,
+                            SelectionKey.OP_CONNECT or SelectionKey.OP_READ or SelectionKey.OP_WRITE
+                    )
                     session.selectionKey = selectionKey
                     Log.d(TAG, "Registered tcp selector successfully")
                 }
@@ -238,7 +242,7 @@ enum class SessionManager {
 
         session.channel = socketChannel
 
-        if (concurrentHashMap.containsKey(key)) {
+        if (sessionHashMap.containsKey(key)) {
             try {
                 socketChannel.close()
             } catch (e: IOException) {
@@ -247,8 +251,9 @@ enum class SessionManager {
 
             return null
         } else {
-            concurrentHashMap[key] = session
+            sessionHashMap[key] = session
         }
+
         return session
     }
 
@@ -260,8 +265,8 @@ enum class SessionManager {
                 srcIp,
                 srcPort)
 
-        if (concurrentHashMap.containsKey(keys))
-            return concurrentHashMap[keys]
+        if (sessionHashMap.containsKey(keys))
+            return sessionHashMap[keys]
 
         val session = Session(srcIp, srcPort, destIp, destPort)
 
@@ -316,7 +321,7 @@ enum class SessionManager {
 
         session.channel = datagramChannel
 
-        if (concurrentHashMap.containsKey(keys)) {
+        if (sessionHashMap.containsKey(keys)) {
             try {
                 datagramChannel.close()
             } catch (e: IOException) {
@@ -325,7 +330,7 @@ enum class SessionManager {
             }
 
         } else {
-            concurrentHashMap[keys] = session
+            sessionHashMap[keys] = session
         }
         Log.d(TAG, "new UDP session successfully created.")
         return session
