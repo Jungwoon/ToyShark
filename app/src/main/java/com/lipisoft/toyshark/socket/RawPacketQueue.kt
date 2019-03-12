@@ -25,10 +25,10 @@ import java.util.Queue
  * @author Borey Sao
  * Date: May 12, 2014
  */
-class PacketQueue {
+class RawPacketQueue {
 
     companion object {
-        val instance = PacketQueue()
+        val instance = RawPacketQueue()
     }
 
     private var packet: Queue<ByteArray>? = LinkedList()

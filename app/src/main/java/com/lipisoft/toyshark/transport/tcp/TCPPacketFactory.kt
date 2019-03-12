@@ -22,6 +22,7 @@ import com.lipisoft.toyshark.packet.Packet
 import com.lipisoft.toyshark.packet.PacketManager
 import com.lipisoft.toyshark.network.ip.IPPacketFactory
 import com.lipisoft.toyshark.network.ip.IPv4Header
+import com.lipisoft.toyshark.util.PacketHeaderException
 import com.lipisoft.toyshark.util.PacketUtil
 
 import java.nio.ByteBuffer
@@ -75,9 +76,14 @@ object TCPPacketFactory {
      * @param seqToClient sequence
      * @return byte[]
      */
-    fun createFinAckData(iPv4Header: IPv4Header, tcpHeader: TCPHeader,
-                         ackToClient: Long, seqToClient: Long,
-                         isFin: Boolean, isAck: Boolean): ByteArray {
+    fun createFinAckData(
+            iPv4Header: IPv4Header,
+            tcpHeader: TCPHeader,
+            ackToClient: Long,
+            seqToClient: Long,
+            isFin: Boolean,
+            isAck: Boolean
+    ): ByteArray {
 
         val ip = IPPacketFactory.copyIPv4Header(iPv4Header)
         val tcp = copyTCPHeader(tcpHeader)
@@ -119,7 +125,14 @@ object TCPPacketFactory {
         return createPacketData(ip, tcp, null)
     }
 
-    fun createFinData(ip: IPv4Header, tcp: TCPHeader, ackNumber: Long, seqNumber: Long, timeSender: Int, timeReplyTo: Int): ByteArray {
+    fun createFinData(
+            ip: IPv4Header,
+            tcp: TCPHeader,
+            ackNumber: Long,
+            seqNumber: Long,
+            timeSender: Int,
+            timeReplyTo: Int
+    ): ByteArray {
         // flip IP from source to dest and vice-versa
         val sourceIp = ip.destinationIP
         val destIp = ip.sourceIP
@@ -227,13 +240,17 @@ object TCPPacketFactory {
      * Acknowledgment to client that server has received request.
      *
      * @param ipHeader    IP Header
-     * @param tcpheader   TCP Header
+     * @param tcpHeader   TCP Header
      * @param ackToClient Acknowledge
      * @return byte[]
      */
-    fun createResponseAckData(ipHeader: IPv4Header, tcpheader: TCPHeader, ackToClient: Long): ByteArray {
+    fun createResponseAckData(
+            ipHeader: IPv4Header,
+            tcpHeader: TCPHeader,
+            ackToClient: Long
+    ): ByteArray {
         val ip = IPPacketFactory.copyIPv4Header(ipHeader)
-        val tcp = copyTCPHeader(tcpheader)
+        val tcp = copyTCPHeader(tcpHeader)
 
         // flip IP from source to dest and vice-versa
         val sourceIp = ip.destinationIP
@@ -281,8 +298,16 @@ object TCPPacketFactory {
      * @param packetData Packet Data
      * @return byte[]
      */
-    fun createResponsePacketData(ip: IPv4Header, tcp: TCPHeader, packetData: ByteArray?, isPsh: Boolean,
-                                 ackNumber: Long, seqNumber: Long, timeSender: Int, timeReplyto: Int): ByteArray {
+    fun createResponsePacketData(
+            ip: IPv4Header,
+            tcp: TCPHeader,
+            packetData: ByteArray?,
+            isPsh: Boolean,
+            ackNumber: Long,
+            seqNumber: Long,
+            timeSender: Int,
+            timeReplyto: Int
+    ): ByteArray {
         val ipHeader = IPPacketFactory.copyIPv4Header(ip)
         val tcpHeader = copyTCPHeader(tcp)
 
@@ -374,7 +399,12 @@ object TCPPacketFactory {
      * @param data      array of byte (packet body)
      * @return array of byte
      */
-    private fun createPacketData(ipHeader: IPv4Header, tcpHeader: TCPHeader, data: ByteArray?): ByteArray {
+    private fun createPacketData(
+            ipHeader: IPv4Header,
+            tcpHeader: TCPHeader,
+            data: ByteArray?
+    ): ByteArray {
+
         var dataLength = 0
         if (data != null) {
             dataLength = data.size
@@ -403,14 +433,19 @@ object TCPPacketFactory {
         // zero out TCP header checksum first
         val tcpStart = ipBuffer.size
         System.arraycopy(zero, 0, buffer, tcpStart + 16, 2)
-        val tcpChecksum = PacketUtil.calculateTCPHeaderChecksum(buffer, tcpStart, tcpBuffer.size + dataLength,
-                ipHeader.destinationIP, ipHeader.sourceIP)
+        val tcpChecksum = PacketUtil.calculateTCPHeaderChecksum(
+                buffer,
+                tcpStart,
+                tcpBuffer.size + dataLength,
+                ipHeader.destinationIP,
+                ipHeader.sourceIP
+        )
 
         // write new checksum back to array
         System.arraycopy(tcpChecksum, 0, buffer, tcpStart + 16, 2)
 
-        PacketManager.INSTANCE.add(Packet(ipHeader, tcpHeader, buffer))
-        PacketManager.INSTANCE.handler.obtainMessage(PacketManager.PACKET).sendToTarget()
+        PacketManager.add(Packet(ipHeader, tcpHeader, buffer))
+        PacketManager.handler.obtainMessage(PacketManager.PACKET).sendToTarget()
 
         return buffer
     }
@@ -516,7 +551,18 @@ object TCPPacketFactory {
         val checksum = stream.short.toInt()
         val urgentPointer = stream.short.toInt()
 
-        val header = TCPHeader(sourcePort, destPort, sequenceNumber, ackNumber, dataOffset, isNs, tcpFlag, windowSize, checksum, urgentPointer)
+        val header = TCPHeader(
+                sourcePort,
+                destPort,
+                sequenceNumber,
+                ackNumber,
+                dataOffset,
+                isNs,
+                tcpFlag,
+                windowSize,
+                checksum,
+                urgentPointer
+        )
 
         if (dataOffset > 5) {
             handleTcpOptions(header, stream, dataOffset * 4 - 20)

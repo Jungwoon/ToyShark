@@ -43,8 +43,8 @@ import kotlin.experimental.or
  * @param timeToLive     8 bits field for preventing datagrams from persisting.
  * @param protocol       defines the protocol used in the data portion of the IP datagram
  * @param headerChecksum 16-bits field used for error-checking of the header
- * @param sourceIP       IPv4 address of sender.
- * @param destinationIP  IPv4 address of receiver.
+ * @param sourceIP       IPv4 ip of sender.
+ * @param destinationIP  IPv4 ip of receiver.
  */
 class IPv4Header(
         val ipVersion: Byte, // 보통 IPv4이기 때문에 4가 들어감

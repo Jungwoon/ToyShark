@@ -54,18 +54,18 @@ public class SessionManagerTest {
     @Test
     public void testKeepSessionAlive() {
         final Session session = new Session(1, 2, 3, 4);
-        SessionManager.INSTANCE.keepSessionAlive(session);
+        SessionManager.keepSessionAlive(session);
 
         final int destinationAddress = session.getDestIp();
         final int destinationPort = session.getDestPort();
         final int sourceAddress = session.getSourceIp();
         final int sourcePort = session.getSourcePort();
-        final String key = SessionManager.INSTANCE.createKey(destinationAddress, destinationPort, sourceAddress, sourcePort);
-        final Session result = SessionManager.INSTANCE.getSessionByKey(key);
+        final String key = SessionManager.createKey(destinationAddress, destinationPort, sourceAddress, sourcePort);
+        final Session result = SessionManager.getSessionByKey(key);
         assertEquals(session, result);
 
         // Release prevents other unit tests from being interrupted.
-        SessionManager.INSTANCE.closeSession(session);
+        SessionManager.closeSession(session);
     }
 
     @Test
@@ -74,12 +74,12 @@ public class SessionManagerTest {
         final String hello = "Hello";
         byte[] byteBuffer = hello.getBytes();
         final ByteBuffer buffer = ByteBuffer.wrap(byteBuffer);
-        SessionManager.INSTANCE.addClientData(buffer, tcpSession);
+        SessionManager.addClientData(buffer, tcpSession);
         final byte[] result = tcpSession.getSendingData();
         assertEquals(true, Arrays.equals(byteBuffer, result));
 
         // Release prevents other unit tests from being interrupted.
-        SessionManager.INSTANCE.closeSession(tcpSession);
+        SessionManager.closeSession(tcpSession);
 
     }
 
@@ -91,11 +91,11 @@ public class SessionManagerTest {
         final int sourceAddress = tcpSession.getSourceIp();
         final int sourcePort = tcpSession.getSourcePort();
 
-        final Session session = SessionManager.INSTANCE.getSession(destinationAddress, destinationPort, sourceAddress, sourcePort);
+        final Session session = SessionManager.getSession(destinationAddress, destinationPort, sourceAddress, sourcePort);
         assertEquals(session, tcpSession);
 
         // Release prevents other unit tests from being interrupted.
-        SessionManager.INSTANCE.closeSession(tcpSession);
+        SessionManager.closeSession(tcpSession);
     }
 
     @Test
@@ -105,12 +105,12 @@ public class SessionManagerTest {
         final int destinationPort = tcpSession.getDestPort();
         final int sourceAddress = tcpSession.getSourceIp();
         final int sourcePort = tcpSession.getSourcePort();
-        final String key = SessionManager.INSTANCE.createKey(destinationAddress, destinationPort, sourceAddress, sourcePort);
-        final Session session = SessionManager.INSTANCE.getSessionByKey(key);
+        final String key = SessionManager.createKey(destinationAddress, destinationPort, sourceAddress, sourcePort);
+        final Session session = SessionManager.getSessionByKey(key);
         assertEquals(session, tcpSession);
 
         // Release prevents other unit tests from being interrupted.
-        SessionManager.INSTANCE.closeSession(tcpSession);
+        SessionManager.closeSession(tcpSession);
     }
 
     @Test
@@ -118,11 +118,11 @@ public class SessionManagerTest {
         final Session tcpSession = makeNewTcpSession();
         final AbstractSelectableChannel channel = tcpSession.getChannel();
 
-        final Session session = SessionManager.INSTANCE.getSessionByChannel(channel);
+        final Session session = SessionManager.getSessionByChannel(channel);
         assertEquals(tcpSession, session);
 
         // Release prevents other unit tests from being interrupted.
-        SessionManager.INSTANCE.closeSession(tcpSession);
+        SessionManager.closeSession(tcpSession);
     }
 
     @Test
@@ -133,36 +133,36 @@ public class SessionManagerTest {
         final int sourceAddress = session.getSourceIp();
         final int sourcePort = session.getSourcePort();
 
-        SessionManager.INSTANCE.closeSession(destinationAddress, destinationPort, sourceAddress, sourcePort);
-        final Session result = SessionManager.INSTANCE.getSession(destinationAddress, destinationPort, sourceAddress, sourcePort);
+        SessionManager.closeSession(destinationAddress, destinationPort, sourceAddress, sourcePort);
+        final Session result = SessionManager.getSession(destinationAddress, destinationPort, sourceAddress, sourcePort);
         assertNull(result);
     }
 
     @Test
     public void testCloseSessionBySession() {
         // UDP connection to Google Public DNS Server(8.8.8.8) for TEST
-        final Session session = SessionManager.INSTANCE.createNewUDPSession(0x08080808, 53, 0, 1);
+        final Session session = SessionManager.createUDPSession(0x08080808, 53, 0, 1);
         assertNotNull(session);
-        SessionManager.INSTANCE.closeSession(session);
-        assertNull(SessionManager.INSTANCE.getSession(0x08080808, 53, 0, 1));
+        SessionManager.closeSession(session);
+        assertNull(SessionManager.getSession(0x08080808, 53, 0, 1));
     }
 
     @Test
     public void testCreateNewUDPSession() {
         // UDP connection to Google Public DNS Server(8.8.8.8) for TEST
-        final Session session = SessionManager.INSTANCE.createNewUDPSession(0x08080808, 53, 0, 1);
+        final Session session = SessionManager.createUDPSession(0x08080808, 53, 0, 1);
         assertNotNull(session);
-        assertEquals(session, SessionManager.INSTANCE.getSession(0x08080808, 53, 0, 1));
+        assertEquals(session, SessionManager.getSession(0x08080808, 53, 0, 1));
 
         // Release prevents other unit tests from being interrupted.
-        SessionManager.INSTANCE.closeSession(session);
+        SessionManager.closeSession(session);
     }
 
     private int getTcpAddress() {
         int destinationAddress = 0;
         try {
             final InetAddress address = InetAddress.getByName("www.google.com");
-            // convert it to int address
+            // convert it to int ip
             final byte[] bytesAddress = address.getAddress();
             destinationAddress = ((bytesAddress[0] & 0xff) << 24) + ((bytesAddress[1] & 0xff) << 16) +
                     ((bytesAddress[2] & 0xff) << 8) + (bytesAddress[3] & 0xff);
@@ -175,9 +175,9 @@ public class SessionManagerTest {
     @NonNull
     private Session makeNewTcpSession() {
         final int destinationAddress = getTcpAddress();
-        final Session session = SessionManager.INSTANCE.createNewTCPSession(destinationAddress, 443, 0, 1);
+        final Session session = SessionManager.createTCPSession(destinationAddress, 443, 0, 1);
         assertNotNull(session);
-        assertEquals(session, SessionManager.INSTANCE.getSession(destinationAddress, 443, 0, 1));
+        assertEquals(session, SessionManager.getSession(destinationAddress, 443, 0, 1));
         return session;
     }
 
@@ -186,12 +186,12 @@ public class SessionManagerTest {
         final Session session = makeNewTcpSession();
 
         // Release prevents other unit tests from being interrupted.
-        SessionManager.INSTANCE.closeSession(session);
+        SessionManager.closeSession(session);
     }
 
     @Test
     public void testCreateKey() {
-        final String key = SessionManager.INSTANCE.createKey(1, 2, 3, 4);
+        final String key = SessionManager.createKey(1, 2, 3, 4);
         assertEquals(key, "0.0.0.3:4-0.0.0.1:2");
     }
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.lipisoft.toyshark.socket
+package com.lipisoft.toyshark.util
 
 /**
  * @author Borey Sao
@@ -21,4 +21,6 @@ package com.lipisoft.toyshark.socket
  */
 object DataConst {
     const val MAX_RECEIVE_BUFFER_SIZE = 65535
+    const val TCP: Byte = 6
+    const val UDP: Byte = 17
 }

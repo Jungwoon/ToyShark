@@ -2,14 +2,14 @@ package com.lipisoft.toyshark.socket
 
 import android.util.Log
 
-import com.lipisoft.toyshark.ClientPacketWriter
+import com.lipisoft.toyshark.packet.ClientPacketWriter
 import com.lipisoft.toyshark.session.Session
 import com.lipisoft.toyshark.session.SessionManager
 import com.lipisoft.toyshark.network.ip.IPPacketFactory
-import com.lipisoft.toyshark.packetRebuild.PCapFileWriter
-import com.lipisoft.toyshark.transport.tcp.PacketHeaderException
+import com.lipisoft.toyshark.util.PacketHeaderException
 import com.lipisoft.toyshark.transport.tcp.TCPPacketFactory
 import com.lipisoft.toyshark.transport.udp.UDPPacketFactory
+import com.lipisoft.toyshark.util.DataConst
 import com.lipisoft.toyshark.util.PacketUtil
 
 import java.io.IOException
@@ -31,16 +31,16 @@ internal class SocketDataReaderWorker(
         private val writer: ClientPacketWriter,
         private val sessionKey: String) : Runnable {
 
-    private val packetQueue: PacketQueue = PacketQueue.instance
+    private val rawPacketQueue: RawPacketQueue = RawPacketQueue.instance
 
     companion object {
         private const val TAG = "SocketDataReaderWorker"
     }
 
     override fun run() {
-        val session = SessionManager.INSTANCE.getSessionByKey(sessionKey)
+        val session = SessionManager.getSessionByKey(sessionKey)
         if (session == null) {
-            Log.e(TAG, "Session NOT FOUND")
+            Log.e(TAG, "$sessionKey - Session NOT FOUND")
             return
         }
 
@@ -75,7 +75,7 @@ internal class SocketDataReaderWorker(
                 }
 
             }
-            SessionManager.INSTANCE.closeSession(session)
+            SessionManager.closeSession(session)
         } else {
             session.isBusyRead = false
         }
@@ -110,13 +110,11 @@ internal class SocketDataReaderWorker(
                 }
             } while (len > 0)
         } catch (e: NotYetConnectedException) {
-            Log.e(TAG, "socket not connected")
+            Log.e(TAG, "Socket not connected")
         } catch (e: ClosedByInterruptException) {
             Log.e(TAG, "ClosedByInterruptException reading SocketChannel: " + e.message)
-            //session.setAbortingConnection(true);
         } catch (e: ClosedChannelException) {
             Log.e(TAG, "ClosedChannelException reading SocketChannel: " + e.message)
-            //session.setAbortingConnection(true);
         } catch (e: IOException) {
             Log.e(TAG, "Error reading data from SocketChannel: " + e.message)
             session.isAbortingConnection = true
@@ -130,6 +128,7 @@ internal class SocketDataReaderWorker(
 
         buffer.limit(dataSize)
         buffer.flip()
+
         // TODO should allocate new byte array?
         val data = ByteArray(dataSize)
         System.arraycopy(buffer.array(), 0, data, 0, dataSize)
@@ -153,15 +152,17 @@ internal class SocketDataReaderWorker(
         }
 
         val ipHeader = session.lastIpHeader!!
-        val tcpheader = session.lastTcpHeader!!
+        val tcpHeader = session.lastTcpHeader!!
+
         // TODO What does 60 mean?
         var max = session.maxSegmentSize - 60
 
         if (max < 1) {
             max = 1024
-        } else if (max > PCapFileWriter.MAX_PACKET_SIZE - 60) {
-            max = PCapFileWriter.MAX_PACKET_SIZE - 60
         }
+//        else if (max > PCapFileWriter.MAX_PACKET_SIZE - 60) {
+//            max = PCapFileWriter.MAX_PACKET_SIZE - 60
+//        }
 
         val packetBody = session.getReceivedData(max)
         if (packetBody.isNotEmpty()) {
@@ -171,7 +172,7 @@ internal class SocketDataReaderWorker(
 
             val responsePacketData = TCPPacketFactory.createResponsePacketData(
                     ipHeader,
-                    tcpheader,
+                    tcpHeader,
                     packetBody,
                     session.hasReceivedLastSegment,
                     session.recSequence,
@@ -181,7 +182,7 @@ internal class SocketDataReaderWorker(
 
             try {
                 writer.write(responsePacketData)
-                packetQueue.addPacket(responsePacketData)
+                rawPacketQueue.addPacket(responsePacketData)
             } catch (e: IOException) {
                 Log.e(TAG, "Failed to send ACK + Data packet: " + e.message)
             }
@@ -192,12 +193,18 @@ internal class SocketDataReaderWorker(
     private fun sendFin(session: Session) {
         val ipHeader = session.lastIpHeader!!
         val tcpHeader = session.lastTcpHeader!!
-        val data = TCPPacketFactory.createFinData(ipHeader, tcpHeader,
-                session.sendNext, session.recSequence,
-                session.timestampSender, session.timestampReplyTo)
+
+        val data = TCPPacketFactory.createFinData(
+                ipHeader,
+                tcpHeader,
+                session.sendNext,
+                session.recSequence,
+                session.timestampSender,
+                session.timestampReplyTo
+        )
         try {
             writer.write(data)
-            packetQueue.addPacket(data)
+            rawPacketQueue.addPacket(data)
         } catch (e: IOException) {
             Log.e(TAG, "Failed to send FIN packet: " + e.message)
         }
@@ -221,15 +228,23 @@ internal class SocketDataReaderWorker(
 
                     buffer.limit(len)
                     buffer.flip()
-                    //create UDP packet
+
+                    // create UDP packet
                     val data = ByteArray(len)
                     System.arraycopy(buffer.array(), 0, data, 0, len)
+
                     val packetData = UDPPacketFactory.createResponsePacket(
-                            session.lastIpHeader!!, session.lastUdpHeader!!, data)
+                            session.lastIpHeader!!,
+                            session.lastUdpHeader!!,
+                            data
+                    )
+
                     //write to client
                     writer.write(packetData)
+
                     //publish to packet subscriber
-                    packetQueue.addPacket(packetData)
+                    rawPacketQueue.addPacket(packetData)
+
                     Log.d(TAG, "SDR: sent " + len + " bytes to UDP client, packetData.length: "
                             + packetData.size)
                     buffer.clear()

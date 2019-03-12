@@ -2,7 +2,7 @@ package com.lipisoft.toyshark.socket
 
 import android.util.Log
 
-import com.lipisoft.toyshark.ClientPacketWriter
+import com.lipisoft.toyshark.packet.ClientPacketWriter
 import com.lipisoft.toyshark.session.Session
 import com.lipisoft.toyshark.session.SessionManager
 import com.lipisoft.toyshark.util.PacketUtil
@@ -37,11 +37,12 @@ class SocketNIODataService(private val clientPacketWriter: ClientPacketWriter) :
             100,
             10,
             TimeUnit.SECONDS,
-            LinkedBlockingQueue())
+            LinkedBlockingQueue()
+    )
 
     override fun run() {
         Log.d(TAG, "SocketNIODataService starting in background...")
-        selector = SessionManager.INSTANCE.selector
+        selector = SessionManager.selector
         Log.d(TAG, "Selector is running...")
 
         while (!shutdown) {
@@ -55,9 +56,7 @@ class SocketNIODataService(private val clientPacketWriter: ClientPacketWriter) :
                 continue
             }
 
-            if (shutdown) {
-                break
-            }
+            if (shutdown) break
 
             // selectedKeys()를 호출하여 선택된 키를 가져온다.
             synchronized(syncSelector2) {
@@ -91,7 +90,7 @@ class SocketNIODataService(private val clientPacketWriter: ClientPacketWriter) :
      */
     fun setShutdown(shutdown: Boolean) {
         this.shutdown = shutdown
-        SessionManager.INSTANCE.selector!!.wakeup()
+        SessionManager.selector.wakeup()
     }
 
     @Throws(IOException::class)
@@ -102,7 +101,7 @@ class SocketNIODataService(private val clientPacketWriter: ClientPacketWriter) :
         }
 
         val channel = key.channel() as SocketChannel
-        val session = SessionManager.INSTANCE.getSessionByChannel(channel) ?: return
+        val session = SessionManager.getSessionByChannel(channel) ?: return
 
         if (!session.isConnected && key.isConnectable) {
             val ip = PacketUtil.intToIPAddress(session.destIp)
@@ -144,7 +143,7 @@ class SocketNIODataService(private val clientPacketWriter: ClientPacketWriter) :
         }
 
         var channel = key.channel() as DatagramChannel
-        val session = SessionManager.INSTANCE.getSessionByChannel(channel) ?: return
+        val session = SessionManager.getSessionByChannel(channel) ?: return
 
         if (!session.isConnected && key.isConnectable) {
             val ip = PacketUtil.intToIPAddress(session.destIp)
@@ -167,7 +166,7 @@ class SocketNIODataService(private val clientPacketWriter: ClientPacketWriter) :
     }
 
     private fun processSelector(selectionKey: SelectionKey, session: Session) {
-        val sessionKey = SessionManager.INSTANCE.createKey(
+        val sessionKey = SessionManager.createKey(
                 session.destIp,
                 session.destPort,
                 session.sourceIp,

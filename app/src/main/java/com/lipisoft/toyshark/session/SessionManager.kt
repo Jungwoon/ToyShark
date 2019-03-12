@@ -18,7 +18,7 @@ package com.lipisoft.toyshark.session
 
 import android.util.Log
 
-import com.lipisoft.toyshark.socket.DataConst
+import com.lipisoft.toyshark.util.DataConst
 import com.lipisoft.toyshark.socket.SocketNIODataService
 import com.lipisoft.toyshark.socket.SocketProtector
 import com.lipisoft.toyshark.util.PacketUtil
@@ -41,18 +41,13 @@ import java.util.concurrent.ConcurrentHashMap
  * @author Borey Sao
  * Date: May 20, 2014
  */
-enum class SessionManager {
-    INSTANCE;
+object SessionManager {
 
     private val TAG = "SessionManager"
     private val sessionHashMap = ConcurrentHashMap<String, Session>()
     private val protector = SocketProtector.getInstance()
 
-    var selector: Selector? = null
-
-    init {
-        selector = Selector.open()
-    }
+    var selector: Selector = Selector.open()
 
     /**
      * keep java garbage collector from collecting a session
@@ -65,8 +60,6 @@ enum class SessionManager {
                 session.sourceIp,
                 session.sourcePort)
 
-        // 만들어진 키는 해쉬맵에 저장
-        // key는 중복이 되지 않기 때문에 유일함
         sessionHashMap[key] = session
     }
 
@@ -88,11 +81,13 @@ enum class SessionManager {
     }
 
     fun getSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
+
         val key = createKey(
                 destIp,
                 destPort,
                 srcIp,
                 srcPort)
+
         return getSessionByKey(key)
     }
 
@@ -104,8 +99,9 @@ enum class SessionManager {
     }
 
     fun getSessionByChannel(channel: AbstractSelectableChannel): Session? {
-        val sessions = sessionHashMap.values
-        for (session in sessions) {
+        val sessionCollection = sessionHashMap.values
+
+        for (session in sessionCollection) {
             if (channel === session.channel)
                 return session
         }
@@ -122,7 +118,6 @@ enum class SessionManager {
      * @param srcPort     Source Port
      */
     fun closeSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int) {
-
         val key = createKey(
                 destIp,
                 destPort,
@@ -167,7 +162,7 @@ enum class SessionManager {
     }
 
     // 새로운 TCP 세션 생성
-    fun createNewTCPSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
+    fun createTCPSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
         val key = createKey(
                 destIp,
                 destPort,
@@ -202,7 +197,6 @@ enum class SessionManager {
         Log.d(TAG, "created new SocketChannel for $key")
 
         protector!!.protect(socketChannel.socket())
-
         Log.d(TAG, "Protected new SocketChannel")
 
         // initiate connection to reduce latency
@@ -224,7 +218,7 @@ enum class SessionManager {
         // 논블록킹 처리
         try {
             synchronized(SocketNIODataService.syncSelector2) {
-                selector?.wakeup()
+                selector.wakeup()
                 synchronized(SocketNIODataService.syncSelector) {
                     val selectionKey = socketChannel.register(
                             selector,
@@ -258,7 +252,7 @@ enum class SessionManager {
     }
 
     // 새로운 UDP 세션 생성
-    fun createNewUDPSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
+    fun createUDPSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
         val keys = createKey(
                 destIp,
                 destPort,
@@ -301,13 +295,21 @@ enum class SessionManager {
 
         try {
             synchronized(SocketNIODataService.syncSelector2) {
-                selector?.wakeup()
+                selector.wakeup()
                 synchronized(SocketNIODataService.syncSelector) {
                     val selectionKey: SelectionKey = if (datagramChannel.isConnected) {
-                        datagramChannel.register(selector, SelectionKey.OP_READ or SelectionKey.OP_WRITE)
+                        datagramChannel.register(
+                                selector,
+                                SelectionKey.OP_READ
+                                        or SelectionKey.OP_WRITE
+                        )
                     } else {
-                        datagramChannel.register(selector, SelectionKey.OP_CONNECT or SelectionKey.OP_READ or
-                                SelectionKey.OP_WRITE)
+                        datagramChannel.register(
+                                selector,
+                                SelectionKey.OP_CONNECT
+                                        or SelectionKey.OP_READ
+                                        or SelectionKey.OP_WRITE
+                        )
                     }
                     session.selectionKey = selectionKey
                     Log.d(TAG, "Registered udp selector successfully")
@@ -341,8 +343,8 @@ enum class SessionManager {
      *
      * @param destIp      Destination IP Address
      * @param destPort    Destination Port
-     * @param srcIp   Source IP Address
-     * @param srcPort Source Port
+     * @param srcIp       Source IP Address
+     * @param srcPort     Source Port
      * @return String
      */
     fun createKey(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): String {

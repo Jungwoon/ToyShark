@@ -2,7 +2,7 @@ package com.lipisoft.toyshark.socket
 
 import android.util.Log
 
-import com.lipisoft.toyshark.ClientPacketWriter
+import com.lipisoft.toyshark.packet.ClientPacketWriter
 import com.lipisoft.toyshark.session.Session
 import com.lipisoft.toyshark.session.SessionManager
 import com.lipisoft.toyshark.transport.tcp.TCPPacketFactory
@@ -17,8 +17,7 @@ import java.util.Date
 
 class SocketDataWriterWorker(
         writer: ClientPacketWriter,
-        private val sessionKey: String
-) : Runnable {
+        private val sessionKey: String) : Runnable {
 
     companion object {
         private const val TAG = "SocketDataWriterWorker"
@@ -30,7 +29,8 @@ class SocketDataWriterWorker(
     }
 
     override fun run() {
-        val session = SessionManager.INSTANCE.getSessionByKey(sessionKey)
+        val session = SessionManager.getSessionByKey(sessionKey)
+
         if (session == null) {
             Log.d(TAG, "No session related to " + sessionKey + "for write")
             return
@@ -70,17 +70,15 @@ class SocketDataWriterWorker(
                 } catch (e: IOException) {
                     e.printStackTrace()
                 }
-
             }
-            SessionManager.INSTANCE.closeSession(session)
+
+            SessionManager.closeSession(session)
         }
     }
 
     private fun writeTCP(session: Session) {
         val channel = session.channel as SocketChannel
-
-        val name = PacketUtil.intToIPAddress(session.destIp) + ":" + session.destPort +
-                "-" + PacketUtil.intToIPAddress(session.sourceIp) + ":" + session.sourcePort
+        val name = getName(session)
 
         val data = session.getSendingData()
         val buffer = ByteBuffer.allocate(data.size)
@@ -89,8 +87,8 @@ class SocketDataWriterWorker(
 
         try {
             Log.d(TAG, "writing TCP data to: $name")
+            Log.e("JW_TEST", "TCP Write : \n${String(buffer.array())}")
             channel.write(buffer)
-            //Log.d(TAG,"finished writing data to: "+name);
         } catch (ex: NotYetConnectedException) {
             Log.e(TAG, "failed to write to unconnected socket: " + ex.message)
         } catch (e: IOException) {
@@ -101,7 +99,7 @@ class SocketDataWriterWorker(
                     session.lastIpHeader!!, session.lastTcpHeader!!, 0)
             try {
                 writer!!.write(rstData)
-                PacketQueue.instance.addPacket(rstData)
+                RawPacketQueue.instance.addPacket(rstData)
             } catch (ex: IOException) {
                 ex.printStackTrace()
             }
@@ -118,8 +116,8 @@ class SocketDataWriterWorker(
             return
         }
         val channel = session.channel as DatagramChannel
-        val name = PacketUtil.intToIPAddress(session.destIp) + ":" + session.destPort +
-                "-" + PacketUtil.intToIPAddress(session.sourceIp) + ":" + session.sourcePort
+        val name = getName(session)
+
         val data = session.getSendingData()
         val buffer = ByteBuffer.allocate(data.size)
         buffer.put(data)
@@ -141,6 +139,11 @@ class SocketDataWriterWorker(
             e.printStackTrace()
             Log.e(TAG, "Error writing to UDP server, will abort connection: " + e.message)
         }
-
     }
+
+    private fun getName(session: Session): String {
+        return  PacketUtil.intToIPAddress(session.destIp) + ":" + session.destPort +
+                "-" + PacketUtil.intToIPAddress(session.sourceIp) + ":" + session.sourcePort
+    }
+
 }

@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "869881380492",
+    "firebase_url": "https://toyshark-23c7c.firebaseio.com",
+    "project_id": "toyshark-23c7c",
+    "storage_bucket": "toyshark-23c7c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:869881380492:android:487fd41870338191",
+        "android_client_info": {
+          "package_name": "com.lipisoft.toyshark"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "869881380492-krqup33phkirhmkgtses56tqklclvun0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lipisoft.toyshark",
+            "certificate_hash": "5f87c9f96052ecd5cb1862e1be27112bd2d40c8f"
+          }
+        },
+        {
+          "client_id": "869881380492-bumcrlkatghrn31rcl9p3qb539g24q4p.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDd4uwGogU5b0IibZFw3qlIqQyKbKXQe7E"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "869881380492-bumcrlkatghrn31rcl9p3qb539g24q4p.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

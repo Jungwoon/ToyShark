@@ -15,157 +15,65 @@
  */
 package com.lipisoft.toyshark
 
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
 import android.net.VpnService
 import android.os.Handler
 import android.os.Message
 import android.os.ParcelFileDescriptor
-import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
+import com.lipisoft.toyshark.packet.ClientPacketWriterImpl
 
-import com.lipisoft.toyshark.packetRebuild.PCapFileWriter
 import com.lipisoft.toyshark.session.SessionHandler
 import com.lipisoft.toyshark.socket.IProtectSocket
-import com.lipisoft.toyshark.socket.IReceivePacket
-import com.lipisoft.toyshark.socket.SocketDataPublisher
 import com.lipisoft.toyshark.socket.SocketNIODataService
 import com.lipisoft.toyshark.socket.SocketProtector
-import com.lipisoft.toyshark.transport.tcp.PacketHeaderException
+import com.lipisoft.toyshark.util.PacketHeaderException
 
-import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.net.DatagramSocket
 import java.net.Socket
 import java.nio.ByteBuffer
-import java.util.Locale
 
-class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSocket, IReceivePacket {
+class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSocket {
 
-    private var mHandler: Handler? = null
-    private var mThread: Thread? = null
+    private var mainThread: Thread? = null
     private var fileDescriptor: ParcelFileDescriptor? = null
     private var serviceValid: Boolean = false
-    private var dataService: SocketNIODataService? = null
+    private var socketNIODataService: SocketNIODataService? = null
     private var dataServiceThread: Thread? = null
-    private var socketDataPublisher: SocketDataPublisher? = null
     private var packetQueueThread: Thread? = null
-    private var traceDir: File? = null
-    private var pCapFileWriter: PCapFileWriter? = null
-    private var timeStream: FileOutputStream? = null
 
     companion object {
         private const val TAG = "ToySharkVPNService"
         private const val MAX_PACKET_LEN = 1500
     }
 
-    /**
-     * receive message to trigger termination of collection
-     */
-    private var serviceCloseCmdReceiver: BroadcastReceiver? = object : BroadcastReceiver() {
-        override fun onReceive(ctx: Context, intent: Intent) {
-            Log.d(TAG, "received service close cmd intent at " + System.currentTimeMillis())
-            unregisterAnalyzerCloseCmdReceiver()
-            serviceValid = false
-            stopSelf()
-        }
-    }
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand")
 
-        if (intent != null) {
-            loadExtras(intent)
-        } else {
-            return START_STICKY
-        }
-
-        try {
-            initTraceFiles()
-        } catch (e: IOException) {
-            e.printStackTrace()
-            stopSelf()
-            return START_STICKY
-        }
-
-        // The handler is only used to show messages.
-        if (mHandler == null) {
-            mHandler = Handler(this)
-        }
-
-        // Stop the previous session by interrupting the thread.
-        if (mThread != null) {
-            mThread!!.interrupt()
+        // Stop the previous session by interrupting the mainThread.
+        if (mainThread != null) {
+            mainThread!!.interrupt()
             var reps = 0
-            while (mThread!!.isAlive) {
+            while (mainThread!!.isAlive) {
                 Log.i(TAG, "Waiting to exit " + ++reps)
                 try {
                     Thread.sleep(1000)
                 } catch (e: InterruptedException) {
                     e.printStackTrace()
                 }
-
             }
         }
 
-        // Start a new session by creating a new thread.
-        mThread = Thread(this, "CaptureThread")
-        mThread!!.start()
+        // Start a new session by creating a new mainThread.
+        mainThread = Thread(this, "CaptureThread")
+        mainThread!!.start()
         return START_STICKY
     }
 
-    private fun loadExtras(intent: Intent) {
-        val traceDirStr = intent.getStringExtra("TRACE_DIR")
-        traceDir = File(traceDirStr)
-    }
-
-    private fun unregisterAnalyzerCloseCmdReceiver() {
-        Log.d(TAG, "inside unregisterAnalyzerCloseCmdReceiver()")
-        try {
-            if (serviceCloseCmdReceiver != null) {
-                unregisterReceiver(serviceCloseCmdReceiver)
-                serviceCloseCmdReceiver = null
-                Log.d(TAG, "successfully unregistered serviceCloseCmdReceiver")
-            }
-        } catch (e: Exception) {
-            Log.d(TAG, "Ignoring exception in serviceCloseCmdReceiver", e)
-        }
-
-    }
-
-    /**
-     * called back from background thread when new packet arrived
-     */
-    override fun receive(packet: ByteArray) {
-        if (pCapFileWriter != null) {
-            try {
-                pCapFileWriter!!.addPacket(packet, 0, packet.size, System.currentTimeMillis() * 1000000)
-            } catch (e: IOException) {
-                Log.e(TAG, "pCapFileWriter.addPacket IOException :" + e.message)
-                e.printStackTrace()
-            }
-
-        } else {
-            Log.e(TAG, "overrun from capture: length:" + packet.size)
-        }
-
-    }
-
-    /**
-     * Close the packet trace file
-     */
-    private fun closePCapTrace() {
-        Log.i(TAG, "closePCapTrace()")
-        if (pCapFileWriter != null) {
-            pCapFileWriter!!.close()
-            pCapFileWriter = null
-            Log.i(TAG, "closePCapTrace() closed")
-        }
-    }
 
     /**
      * onDestroy is invoked when user disconnects the VPN
@@ -174,39 +82,18 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
         Log.i(TAG, "onDestroy()")
         serviceValid = false
 
-        unregisterAnalyzerCloseCmdReceiver()
+        socketNIODataService?.setShutdown(true)
+        dataServiceThread?.interrupt()
+        packetQueueThread?.interrupt()
+        fileDescriptor?.close()
 
-        if (dataService != null)
-            dataService!!.setShutdown(true)
-
-        if (socketDataPublisher != null)
-            socketDataPublisher!!.isShuttingDown = true
-
-        //	closeTraceFiles();
-
-        if (dataServiceThread != null) {
-            dataServiceThread!!.interrupt()
-        }
-        if (packetQueueThread != null) {
-            packetQueueThread!!.interrupt()
-        }
-
-        try {
-            if (fileDescriptor != null) {
-                Log.i(TAG, "fileDescriptor.close()")
-                fileDescriptor!!.close()
-            }
-        } catch (e: IOException) {
-            Log.d(TAG, "fileDescriptor.close():" + e.message)
-            e.printStackTrace()
-        }
-
-        // Stop the previous session by interrupting the thread.
-        if (mThread != null) {
-            mThread!!.interrupt()
+        // Stop the previous session by interrupting the mainThread.
+        if (mainThread != null) {
+            mainThread?.interrupt()
             var reps = 0
-            while (mThread!!.isAlive) {
+            while (mainThread!!.isAlive) {
                 Log.i(TAG, "Waiting to exit " + ++reps)
+
                 try {
                     Thread.sleep(1000)
                 } catch (e: InterruptedException) {
@@ -217,9 +104,8 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
                     break
                 }
             }
-            mThread = null
+            mainThread = null
         }
-
     }
 
     override fun run() {
@@ -239,94 +125,6 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
         }
 
         Log.i(TAG, "Closing Capture files")
-        closeTraceFiles()
-    }
-
-    /**
-     * create, open, initialize trace files
-     */
-    @Throws(IOException::class)
-    private fun initTraceFiles() {
-        Log.i(TAG, "initTraceFiles()")
-        initPcapFile()
-        instantiateTimeFile()
-    }
-
-    /**
-     * close the trace files
-     */
-    private fun closeTraceFiles() {
-        Log.i(TAG, "closeTraceFiles()")
-        closePCapTrace()
-        closeTimeFile()
-    }
-
-    /**
-     * Create and leave open, the pcap file
-     *
-     * @throws IOException
-     */
-    @Throws(IOException::class)
-    private fun initPcapFile() {
-        if (!traceDir!!.exists())
-            if (!traceDir!!.mkdirs())
-                Log.e(TAG, "CANNOT make " + traceDir!!.toString())
-
-        // gen & open pcap file
-        val sFileName = "ToyShark.pcapng"
-        val pcapFile = File(traceDir, sFileName)
-        pCapFileWriter = PCapFileWriter(pcapFile)
-    }
-
-    /**
-     * Create and leave open, the time file
-     * time file format
-     * line 1: header
-     * line 2: pcap start time
-     * line 3: eventtime or uptime (doesn't appear to be used)
-     * line 4: pcap stop time
-     * line 5: time zone offset
-     */
-    @Throws(IOException::class)
-    private fun instantiateTimeFile() {
-
-        if (!traceDir!!.exists())
-            if (!traceDir!!.mkdirs())
-                Log.e(TAG, "CANNOT make " + traceDir!!.toString())
-
-        // gen & open pcap file
-        val sFileName = "time"
-        val timeFile = File(traceDir, sFileName)
-        timeStream = FileOutputStream(timeFile)
-
-        val str = String.format(Locale.ENGLISH, "%s\n%.3f\n%d\n", "Synchronized timestamps", System.currentTimeMillis().toDouble() / 1000.0, SystemClock.uptimeMillis()
-        )
-
-        try {
-            timeStream!!.write(str.toByteArray())
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-
-    }
-
-    /**
-     * update and close the time file
-     */
-    private fun closeTimeFile() {
-        Log.i(TAG, "closeTimeFile()")
-        if (timeStream != null) {
-            val str = String.format(Locale.ENGLISH, "%.3f\n", System.currentTimeMillis().toDouble() / 1000.0)
-            try {
-                timeStream!!.write(str.toByteArray())
-                timeStream!!.flush()
-                timeStream!!.close()
-                Log.i(TAG, "...closed")
-            } catch (e: IOException) {
-                Log.e(TAG, "IOException:" + e.message)
-            }
-
-        }
     }
 
     /**
@@ -335,7 +133,6 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
      * @return boolean
      */
     private fun startVpnService(): Boolean {
-        // If the old interface has exactly the same parameters, use it!
         if (fileDescriptor != null) {
             Log.i(TAG, "Using the previous interface")
             return false
@@ -361,7 +158,7 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
     }
 
     /**
-     * start background thread to handle client's socket, handle incoming and outgoing packet from VPN interface
+     * start background mainThread to handle client's socket, handle incoming and outgoing packet from VPN interface
      *
      * @throws IOException
      */
@@ -369,44 +166,40 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
     fun startCapture() {
         Log.i(TAG, "startCapture() :capture starting")
 
-        val clientReader = FileInputStream(fileDescriptor!!.fileDescriptor) // input stream
-        val clientWriter = FileOutputStream(fileDescriptor!!.fileDescriptor) // output stream
+        val clientReadStream = FileInputStream(fileDescriptor!!.fileDescriptor) // input stream
+        val clientWriteStream = FileOutputStream(fileDescriptor!!.fileDescriptor) // output stream
 
         // Allocate the buffer for a single packet.
-        val packet = ByteBuffer.allocate(MAX_PACKET_LEN)
-        val clientPacketWriter = ClientPacketWriterImpl(clientWriter)
+        val packetBuffer = ByteBuffer.allocate(MAX_PACKET_LEN)
+        val clientPacketWriter = ClientPacketWriterImpl(clientWriteStream)
 
-        val sessionHandler = SessionHandler.instance
-        sessionHandler.setWriter(clientPacketWriter)
+        SessionHandler.setWriter(clientPacketWriter)
 
         // 백그라운드에서 non-blocking 소켓에 쓰는 부분
-        dataService = SocketNIODataService(clientPacketWriter)
-        dataServiceThread = Thread(dataService)
+        socketNIODataService = SocketNIODataService(clientPacketWriter)
+        dataServiceThread = Thread(socketNIODataService)
         dataServiceThread!!.start()
 
-        // pcap 파일 만드는 곳
-        socketDataPublisher = SocketDataPublisher()
-        socketDataPublisher!!.subscribe(this)
-        packetQueueThread = Thread(socketDataPublisher)
-        packetQueueThread!!.start()
+        var packetData: ByteArray
+        var packetDataLength: Int
 
-        var data: ByteArray
-        var length: Int
         serviceValid = true
 
         // VPN Client 로부터 패킷을 읽는 부분
         while (serviceValid) {
-            data = packet.array()
-            length = clientReader.read(data)
-            if (length > 0) {
+            packetData = packetBuffer.array()
+            packetDataLength = clientReadStream.read(packetData)
+
+            if (hasPacketData(packetDataLength)) {
                 try {
-                    packet.limit(length) // 포인터의 끝
-                    sessionHandler.handlePacket(packet)
+                    packetBuffer.limit(packetDataLength) // 포인터의 끝
+                    SessionHandler.handlePacket(packetBuffer)
                 } catch (e: PacketHeaderException) {
                     Log.e(TAG, e.message)
                 }
 
-                packet.clear()
+                packetBuffer.clear()
+
             } else {
                 try {
                     Thread.sleep(100)
@@ -417,6 +210,8 @@ class ToySharkVPNService : VpnService(), Handler.Callback, Runnable, IProtectSoc
         }
         Log.i(TAG, "capture finished: serviceValid = $serviceValid")
     }
+
+    private fun hasPacketData(length: Int) = length > 0
 
     override fun handleMessage(message: Message?): Boolean {
         if (message != null) {

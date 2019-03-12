@@ -18,32 +18,24 @@ package com.lipisoft.toyshark
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.VpnService
 import android.os.Bundle
 import android.os.Environment
-import android.support.v4.app.ActivityCompat
-import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.Log
-
 import com.lipisoft.toyshark.list.PacketListAdapter
-
 import java.net.NetworkInterface
 import java.util.Collections
-
-import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import com.lipisoft.toyshark.packet.PacketManager
 
 class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
-        private const val REQUEST_WRITE_EXTERNAL_STORAGE = 0
     }
 
     /** check whether network is connected or not
@@ -65,40 +57,19 @@ class MainActivity : AppCompatActivity() {
         recyclerView.setHasFixedSize(true)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        val adapter = PacketListAdapter(PacketManager.INSTANCE.packetList)
-        PacketManager.INSTANCE.setAdapter(adapter)
+        val adapter = PacketListAdapter(PacketManager.packetList)
+        PacketManager.setAdapter(adapter)
         recyclerView.adapter = adapter
 
-        checkRuntimePermission()
+        checkVpnPermission()
     }
 
-    private fun checkRuntimePermission() {
-        val permission = ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE)
-        if (permission != PackageManager.PERMISSION_GRANTED) {
-            if (!ActivityCompat.shouldShowRequestPermissionRationale(this, WRITE_EXTERNAL_STORAGE)) {
-                ActivityCompat.requestPermissions(this,
-                        arrayOf(WRITE_EXTERNAL_STORAGE), REQUEST_WRITE_EXTERNAL_STORAGE)
-            }
-        } else {
-            if (isConnectedToInternet)
-                startVPN()
-            else {
-                showInfoDialog(resources.getString(R.string.app_name),
-                        resources.getString(R.string.no_network_information))
-            }
-        }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        when (requestCode) {
-            REQUEST_WRITE_EXTERNAL_STORAGE -> if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                if (isConnectedToInternet) {
-                    startVPN()
-                } else {
-                    showInfoDialog(resources.getString(R.string.app_name),
-                            resources.getString(R.string.no_network_information))
-                }
-            }
+    private fun checkVpnPermission() {
+        if (isConnectedToInternet)
+            startVPN()
+        else {
+            showInfoDialog(resources.getString(R.string.app_name),
+                    resources.getString(R.string.no_network_information))
         }
     }
 
@@ -106,10 +77,8 @@ class MainActivity : AppCompatActivity() {
      * Launch intent for user approval of VPN connection
      */
     private fun startVPN() {
-        // check for VPN already running
         try {
             if (!checkForActiveInterface("tun0")) {
-
                 // get user permission for VPN
                 val intent = VpnService.prepare(this)
                 if (intent != null) {

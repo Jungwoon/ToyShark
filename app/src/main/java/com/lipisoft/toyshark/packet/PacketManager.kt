@@ -8,24 +8,20 @@ import com.lipisoft.toyshark.list.PacketListAdapter
 
 import java.util.ArrayList
 
-enum class PacketManager {
-    INSTANCE;
-
-    companion object {
-        const val PACKET = 0
-    }
+object PacketManager {
+    const val PACKET = 0
 
     val packetList = ArrayList<Packet>()
-    private var adapter: PacketListAdapter? = null
+    private var packetListAdapter: PacketListAdapter? = null
 
     val handler: Handler = object : Handler(Looper.getMainLooper()) {
-        override fun handleMessage(msg: Message?) {
-            if (msg != null) {
-                if (msg.what == PACKET) {
-                    adapter!!.notifyDataSetChanged()
+        override fun handleMessage(message: Message?) {
+            if (message != null) {
+                if (message.what == PACKET) {
+                    packetListAdapter!!.notifyDataSetChanged()
                 }
             }
-            super.handleMessage(msg)
+            super.handleMessage(message)
         }
     }
 
@@ -34,7 +30,7 @@ enum class PacketManager {
     }
 
     fun setAdapter(adapter: PacketListAdapter) {
-        this.adapter = adapter
+        this.packetListAdapter = adapter
     }
 
 }

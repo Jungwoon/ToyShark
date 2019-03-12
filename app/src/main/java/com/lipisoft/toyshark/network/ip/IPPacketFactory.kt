@@ -16,7 +16,7 @@
 
 package com.lipisoft.toyshark.network.ip
 
-import com.lipisoft.toyshark.transport.tcp.PacketHeaderException
+import com.lipisoft.toyshark.util.PacketHeaderException
 
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -84,10 +84,10 @@ object IPPacketFactory {
         buf.putInt(0, header.sourceIP)
         buf.putInt(4, header.destinationIP)
 
-        // source ip address
+        // source ip ip
         System.arraycopy(buf.array(), 0, buffer, 12, 4)
 
-        // destination ip address
+        // destination ip ip
         System.arraycopy(buf.array(), 4, buffer, 16, 4)
 
         return buffer
@@ -102,20 +102,15 @@ object IPPacketFactory {
     @Throws(PacketHeaderException::class)
     fun createIPv4Header(stream: ByteBuffer): IPv4Header {
         // avoid Index out of range
-        if (stream.remaining() < 20) {
-            throw PacketHeaderException("Minimum IPv4 header is 20 bytes. There are less " + "than 20 bytes from start position to the end of array.")
-        }
+        if (stream.remaining() < 20)
+            throw PacketHeaderException("Minimum IPv4 header is 20 bytes. There are less than 20 bytes from start position to the end of array.")
 
         val versionAndHeaderLength = stream.get()
         val ipVersion = (versionAndHeaderLength.toInt() shr 4).toByte()
-        if (ipVersion.toInt() != 0x04) {
-            throw PacketHeaderException("Invalid IPv4 header. IP version should be 4.")
-        }
+        if (ipVersion.toInt() != 0x04) throw PacketHeaderException("Invalid IPv4 header. IP version should be 4.")
 
         val internetHeaderLength = (versionAndHeaderLength and 0x0F)
-        if (stream.capacity() < internetHeaderLength * 4) {
-            throw PacketHeaderException("Not enough space in array for IP header")
-        }
+        if (stream.capacity() < internetHeaderLength * 4) throw PacketHeaderException("Not enough space in array for IP header")
 
         val typeOfService = stream.get()
         val dscp = (typeOfService.toInt() shr 2).toByte()
@@ -138,8 +133,21 @@ object IPPacketFactory {
                 stream.int
             }
         }
-        return IPv4Header(ipVersion, internetHeaderLength, dscp, ecn, totalLength, identification,
-                mayFragment, lastFragment, fragmentOffset, timeToLive, protocol, checksum, sourceIp,
-                desIp)
+        return IPv4Header(
+                ipVersion,
+                internetHeaderLength,
+                dscp,
+                ecn,
+                totalLength,
+                identification,
+                mayFragment,
+                lastFragment,
+                fragmentOffset,
+                timeToLive,
+                protocol,
+                checksum,
+                sourceIp,
+                desIp
+        )
     }
 }

@@ -31,6 +31,7 @@ class SocketProtector {
 
     companion object {
         private val synObject = Any()
+
         @Volatile
         private var instance: SocketProtector? = null
 
@@ -50,13 +51,10 @@ class SocketProtector {
 
     /**
      * set class that implement IProtectSocket if only if it was never set before.
-     *
-     * @param protector ProtectSocket
      */
     fun setProtector(protector: IProtectSocket) {
-        if (this.protector == null) {
+        if (this.protector == null)
             this.protector = protector
-        }
     }
 
     fun protect(socket: Socket) {

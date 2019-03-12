@@ -4,7 +4,7 @@ import com.lipisoft.toyshark.packet.Packet
 import com.lipisoft.toyshark.packet.PacketManager
 import com.lipisoft.toyshark.network.ip.IPPacketFactory
 import com.lipisoft.toyshark.network.ip.IPv4Header
-import com.lipisoft.toyshark.transport.tcp.PacketHeaderException
+import com.lipisoft.toyshark.util.PacketHeaderException
 import com.lipisoft.toyshark.util.PacketUtil
 
 import java.nio.ByteBuffer
@@ -91,8 +91,8 @@ object UDPPacketFactory {
 
         val udpHeader = UDPHeader(srcPort, destPort, udpLen, checksum.toInt())
 
-        PacketManager.INSTANCE.add(Packet(ipHeader, udpHeader, buffer))
-        PacketManager.INSTANCE.handler.obtainMessage(PacketManager.PACKET).sendToTarget()
+        PacketManager.add(Packet(ipHeader, udpHeader, buffer))
+        PacketManager.handler.obtainMessage(PacketManager.PACKET).sendToTarget()
 
         return buffer
     }

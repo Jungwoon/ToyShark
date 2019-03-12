@@ -16,9 +16,6 @@
 
 package com.lipisoft.toyshark.util
 
-import java.net.Inet4Address
-import java.net.NetworkInterface
-import java.net.SocketException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import android.util.Log
@@ -41,33 +38,6 @@ object PacketUtil {
 
     @Volatile
     private var packetId = 0
-
-    /**
-     * get IP address of device
-     *
-     * @return IP Address
-     */
-    val localIpAddress: String?
-        get() {
-            try {
-                val en = NetworkInterface.getNetworkInterfaces()
-                while (en.hasMoreElements()) {
-                    val networkInterface = en.nextElement()
-                    if (networkInterface.displayName != "tun0") {
-                        val addresses = networkInterface.inetAddresses
-                        while (addresses.hasMoreElements()) {
-                            val inetAddress = addresses.nextElement()
-                            if (!inetAddress.isLoopbackAddress && inetAddress is Inet4Address)
-                                return inetAddress.getHostAddress()
-                        }
-                    }
-                }
-            } catch (ex: SocketException) {
-                ex.printStackTrace()
-            }
-
-            return null
-        }
 
     @Synchronized
     fun getPacketId(): Int {
@@ -214,7 +184,7 @@ object PacketUtil {
         var sum = 0
         while (start < length) {
             sum += getNetworkInt(data, start, 2)
-            start = start + 2
+            start += 2
         }
 
         //carry over one's complement
@@ -275,8 +245,8 @@ object PacketUtil {
         if (odd) {
             buffer.put(0.toByte())
         }
-        val tcparray = buffer.array()
-        return calculateChecksum(tcparray, 0, buffersize)
+        val tcpArray = buffer.array()
+        return calculateChecksum(tcpArray, 0, buffersize)
     }
 
     fun intToIPAddress(addressInt: Int): String {
@@ -305,7 +275,7 @@ object PacketUtil {
                 "\r\nUDP Checksum: " + udpHeader.checksum
     }
 
-    fun getOutput(ipHeader: IPv4Header, tcpHeader: TCPHeader, packetData: ByteArray): String {
+    fun getTCPOutput(ipHeader: IPv4Header, tcpHeader: TCPHeader, packetData: ByteArray): String {
         val tcpLength = (packetData.size - ipHeader.ipHeaderLength).toShort()
         val isValidChecksum = PacketUtil.isValidTCPChecksum(
                 ipHeader.sourceIP, ipHeader.destinationIP,
