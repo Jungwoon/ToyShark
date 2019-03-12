@@ -29,8 +29,8 @@ object PacketManager {
         return packetList.add(packet)
     }
 
-    fun setAdapter(adapter: PacketListAdapter) {
-        this.packetListAdapter = adapter
+    fun setAdapter(packetListAdapter: PacketListAdapter) {
+        this.packetListAdapter = packetListAdapter
     }
 
 }

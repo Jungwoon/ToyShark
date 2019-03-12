@@ -32,7 +32,7 @@ class SocketDataWriterWorker(
         val session = SessionManager.getSessionByKey(sessionKey)
 
         if (session == null) {
-            Log.d(TAG, "No session related to " + sessionKey + "for write")
+            Log.d(TAG, "No session related to $sessionKey for write")
             return
         }
 
@@ -94,7 +94,7 @@ class SocketDataWriterWorker(
         } catch (e: IOException) {
             Log.e(TAG, "Error writing to server: " + e.message)
 
-            //close connection with vpn client
+            // close connection with vpn client
             val rstData = TCPPacketFactory.createRstData(
                     session.lastIpHeader!!, session.lastTcpHeader!!, 0)
             try {
@@ -104,7 +104,7 @@ class SocketDataWriterWorker(
                 ex.printStackTrace()
             }
 
-            //remove session
+            // remove session
             Log.e(TAG, "failed to write to remote socket, aborting connection")
             session.isAbortingConnection = true
         }
@@ -122,6 +122,7 @@ class SocketDataWriterWorker(
         val buffer = ByteBuffer.allocate(data.size)
         buffer.put(data)
         buffer.flip()
+
         try {
             val str = String(data)
             Log.d(TAG, "****** data write to server ********")
@@ -129,8 +130,7 @@ class SocketDataWriterWorker(
             Log.d(TAG, "***** end writing to server *******")
             Log.d(TAG, "writing data to remote UDP: $name")
             channel.write(buffer)
-            val dt = Date()
-            session.connectionStartTime = dt.time
+            session.connectionStartTime = Date().time
         } catch (ex2: NotYetConnectedException) {
             session.isAbortingConnection = true
             Log.e(TAG, "Error writing to unconnected-UDP server, will abort current connection: " + ex2.message)

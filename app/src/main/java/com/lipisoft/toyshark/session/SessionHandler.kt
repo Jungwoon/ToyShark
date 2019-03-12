@@ -77,10 +77,9 @@ object SessionHandler {
         PacketManager.handler.obtainMessage(PacketManager.PACKET).sendToTarget()
 
         // TCP 와 UDP 에 따라서 다르게 stream 을 처리함
-        if (transportHeader is TCPHeader) {
-            handleTCPPacket(stream, ipHeader, transportHeader)
-        } else if (transportHeader is UDPHeader) {
-            handleUDPPacket(stream, ipHeader, transportHeader)
+        when (transportHeader) {
+            is TCPHeader -> handleTCPPacket(stream, ipHeader, transportHeader)
+            is UDPHeader -> handleUDPPacket(stream, ipHeader, transportHeader)
         }
     }
 
@@ -101,10 +100,10 @@ object SessionHandler {
         val tcpPacket = packet.transportHeader as TCPHeader
 
         val session = SessionManager.createTCPSession(
-                ipHeader.destinationIP,
-                tcpHeader.destinationPort,
-                ipHeader.sourceIP,
-                tcpHeader.sourcePort
+                destIp = ipHeader.destinationIP,
+                destPort = tcpHeader.destinationPort,
+                srcIp = ipHeader.sourceIP,
+                srcPort = tcpHeader.sourcePort
         ) ?: return
 
         val windowScaleFactor = Math.pow(2.0, tcpPacket.windowScale.toDouble()).toInt()
@@ -114,7 +113,7 @@ object SessionHandler {
         session.maxSegmentSize = tcpPacket.maxSegmentSize
         session.sendUnAck = tcpPacket.sequenceNumber
         session.sendNext = tcpPacket.sequenceNumber + 1
-        session.recSequence = tcpPacket.ackNumber // client initial sequence has been incremented by 1 and set to ack
+        session.recSequence = tcpPacket.ackNumber
 
         try {
             writer?.write(packet.buffer)
@@ -187,10 +186,10 @@ object SessionHandler {
     private fun finishSession(ipHeader: IPv4Header, tcpHeader: TCPHeader) {
         // case client sent FIN without ACK
         SessionManager.getSession(
-                ipHeader.destinationIP,
-                tcpHeader.destinationPort,
-                ipHeader.sourceIP,
-                tcpHeader.sourcePort
+                destIp = ipHeader.destinationIP,
+                destPort = tcpHeader.destinationPort,
+                srcIp = ipHeader.sourceIP,
+                srcPort = tcpHeader.sourcePort
         ) ?.let {
             SessionManager.keepSessionAlive(it)
         } ?: replyFinAck(null, ipHeader, tcpHeader)
@@ -199,10 +198,10 @@ object SessionHandler {
 
     private fun resetConnection(ipHeader: IPv4Header, tcpHeader: TCPHeader) {
         SessionManager.getSession(
-                ipHeader.destinationIP,
-                tcpHeader.destinationPort,
-                ipHeader.sourceIP,
-                tcpHeader.sourcePort
+                destIp = ipHeader.destinationIP,
+                destPort = tcpHeader.destinationPort,
+                srcIp = ipHeader.sourceIP,
+                srcPort = tcpHeader.sourcePort
         ) ?.apply { isAbortingConnection = true }
     }
 
@@ -222,27 +221,27 @@ object SessionHandler {
     }
 
     private fun handleUDPPacket(
-            streamByteBuffer: ByteBuffer,
+            stream: ByteBuffer,
             ipHeader: IPv4Header,
             udpHeader: UDPHeader
     ) {
 
         val session = SessionManager.getSession(
-                ipHeader.destinationIP,
-                udpHeader.destinationPort,
-                ipHeader.sourceIP,
-                udpHeader.sourcePort
+                destIp = ipHeader.destinationIP,
+                destPort = udpHeader.destinationPort,
+                srcIp = ipHeader.sourceIP,
+                srcPort = udpHeader.sourcePort
         ) ?: SessionManager.createUDPSession(
-                ipHeader.destinationIP,
-                udpHeader.destinationPort,
-                ipHeader.sourceIP,
-                udpHeader.sourcePort
+                destIp = ipHeader.destinationIP,
+                destPort = udpHeader.destinationPort,
+                srcIp = ipHeader.sourceIP,
+                srcPort = udpHeader.sourcePort
         ) ?: return
 
         session.lastIpHeader = ipHeader
         session.lastUdpHeader = udpHeader
 
-        val length = SessionManager.addClientData(streamByteBuffer, session)
+        val length = SessionManager.addClientData(stream, session)
         session.isDataForSendingReady = true
 
         Log.d(TAG, "added UDP data for bg worker to send: $length")
@@ -266,9 +265,9 @@ object SessionHandler {
 
     private fun sendLastAck(ipHeader: IPv4Header, tcpHeader: TCPHeader) {
         val data = TCPPacketFactory.createResponseAckData(
-                ipHeader,
-                tcpHeader,
-                tcpHeader.sequenceNumber + 1
+                ipHeader = ipHeader,
+                tcpHeader = tcpHeader,
+                ackToClient = tcpHeader.sequenceNumber + 1
         )
 
         try {
@@ -287,10 +286,10 @@ object SessionHandler {
         val ack = tcpHeader.sequenceNumber + 1
         val seq = tcpHeader.ackNumber
         val data = TCPPacketFactory.createFinAckData(
-                ipHeader,
-                tcpHeader,
-                ack,
-                seq,
+                iPv4Header = ipHeader,
+                tcpHeader = tcpHeader,
+                ackToClient = ack,
+                seqToClient = seq,
                 isFin = true,
                 isAck = true
         )
@@ -318,10 +317,10 @@ object SessionHandler {
         val ack = tcpHeader.sequenceNumber
         val seq = tcpHeader.ackNumber
         val data = TCPPacketFactory.createFinAckData(
-                ipHeader,
-                tcpHeader,
-                ack,
-                seq,
+                iPv4Header = ipHeader,
+                tcpHeader = tcpHeader,
+                ackToClient = ack,
+                seqToClient = seq,
                 isFin = true,
                 isAck = false
         )
@@ -343,6 +342,7 @@ object SessionHandler {
             }
 
             var vpnTcp: TCPHeader? = null
+
             try {
                 if (vpnIp != null)
                     vpnTcp = TCPPacketFactory.createTCPHeader(stream)
@@ -367,11 +367,13 @@ object SessionHandler {
     }
 
     private fun pushDataToDestination(session: Session, tcp: TCPHeader) {
-        session.isDataForSendingReady = true
-        session.timestampReplyTo = tcp.timeStampSender
-        session.timestampSender = System.currentTimeMillis().toInt()
+        session.apply {
+            isDataForSendingReady = true
+            timestampReplyTo = tcp.timeStampSender
+            timestampSender = System.currentTimeMillis().toInt()
+        }
 
-        Log.d(TAG, "set data ready for sending to dest, bg will do it. data size: " + session.getSendingDataSize())
+        Log.d(TAG, "set data ready for sending to dest, bg will do it. data size: ${session.getSendingDataSize()}")
     }
 
     /**
@@ -387,7 +389,11 @@ object SessionHandler {
         Log.d(TAG, "sent ack, ack# " + session.recSequence + " + " + acceptedDataLength + " = " + ackNumber)
         session.recSequence = ackNumber
 
-        val data = TCPPacketFactory.createResponseAckData(ipHeader, tcpHeader, ackNumber)
+        val data = TCPPacketFactory.createResponseAckData(
+                ipHeader = ipHeader,
+                tcpHeader = tcpHeader,
+                ackToClient = ackNumber
+        )
 
         try {
             writer?.write(data)
@@ -420,6 +426,7 @@ object SessionHandler {
      */
     private fun acceptAck(tcpHeader: TCPHeader, session: Session) {
         val isCorrupted = PacketUtil.isPacketCorrupted(tcpHeader)
+
         if (isCorrupted) {
             Log.e(TAG, "prev packet was corrupted, last ack# " + tcpHeader.ackNumber)
         }
@@ -428,13 +435,19 @@ object SessionHandler {
             session.isAck = true
 
             if (tcpHeader.windowSize > 0) {
-                session.setSendWindowSizeAndScale(tcpHeader.windowSize, session.sendWindowScale)
+                session.setSendWindowSizeAndScale(
+                        sendWindowSize = tcpHeader.windowSize,
+                        sendWindowScale = session.sendWindowScale
+                )
             }
 
-            session.sendUnAck = tcpHeader.ackNumber
-            session.recSequence = tcpHeader.sequenceNumber
-            session.timestampReplyTo = tcpHeader.timeStampSender
-            session.timestampSender = System.currentTimeMillis().toInt()
+            session.apply {
+                sendUnAck = tcpHeader.ackNumber
+                recSequence = tcpHeader.sequenceNumber
+                timestampReplyTo = tcpHeader.timeStampSender
+                timestampSender = System.currentTimeMillis().toInt()
+            }
+
         } else {
             Log.d(TAG, "Not Accepting ack# " + tcpHeader.ackNumber + " , it should be: " + session.sendNext)
             Log.d(TAG, "Prev sendUnack: " + session.sendUnAck)

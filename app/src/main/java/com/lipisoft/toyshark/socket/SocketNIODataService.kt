@@ -149,6 +149,7 @@ class SocketNIODataService(private val clientPacketWriter: ClientPacketWriter) :
             val ip = PacketUtil.intToIPAddress(session.destIp)
             val port = session.destPort
             val address = InetSocketAddress(ip, port)
+
             try {
                 Log.d(TAG, "selector: connecting to remote UDP server: $ip:$port")
                 channel = channel.connect(address)
@@ -167,10 +168,10 @@ class SocketNIODataService(private val clientPacketWriter: ClientPacketWriter) :
 
     private fun processSelector(selectionKey: SelectionKey, session: Session) {
         val sessionKey = SessionManager.createKey(
-                session.destIp,
-                session.destPort,
-                session.sourceIp,
-                session.sourcePort)
+                destIp = session.destIp,
+                destPort = session.destPort,
+                srcIp = session.sourceIp,
+                srcPort = session.sourcePort)
 
         // tcp has PSH flag when data is ready for sending, UDP does not have this
         if (selectionKey.isValid

@@ -38,20 +38,20 @@ object IPPacketFactory {
      */
     fun copyIPv4Header(iPv4Header: IPv4Header): IPv4Header {
         return IPv4Header(
-                iPv4Header.ipVersion,
-                iPv4Header.headerLength,
-                iPv4Header.dscp,
-                iPv4Header.ecn,
-                iPv4Header.totalLength,
-                iPv4Header.identification,
-                iPv4Header.isMayFragment,
-                iPv4Header.lastFragment,
-                iPv4Header.fragmentOffset,
-                iPv4Header.timeToLive,
-                iPv4Header.protocol,
-                iPv4Header.headerChecksum,
-                iPv4Header.sourceIP,
-                iPv4Header.destinationIP)
+                ipVersion = iPv4Header.ipVersion,
+                headerLength = iPv4Header.headerLength,
+                dscp = iPv4Header.dscp,
+                ecn = iPv4Header.ecn,
+                totalLength = iPv4Header.totalLength,
+                identification = iPv4Header.identification,
+                mayFragment = iPv4Header.isMayFragment,
+                lastFragment = iPv4Header.lastFragment,
+                fragmentOffset = iPv4Header.fragmentOffset,
+                timeToLive = iPv4Header.timeToLive,
+                protocol = iPv4Header.protocol,
+                headerChecksum = iPv4Header.headerChecksum,
+                sourceIP = iPv4Header.sourceIP,
+                destinationIP = iPv4Header.destinationIP)
     }
 
     /**
@@ -134,20 +134,20 @@ object IPPacketFactory {
             }
         }
         return IPv4Header(
-                ipVersion,
-                internetHeaderLength,
-                dscp,
-                ecn,
-                totalLength,
-                identification,
-                mayFragment,
-                lastFragment,
-                fragmentOffset,
-                timeToLive,
-                protocol,
-                checksum,
-                sourceIp,
-                desIp
+                ipVersion = ipVersion,
+                headerLength = internetHeaderLength,
+                dscp = dscp,
+                ecn = ecn,
+                totalLength = totalLength,
+                identification = identification,
+                mayFragment = mayFragment,
+                lastFragment = lastFragment,
+                fragmentOffset = fragmentOffset,
+                timeToLive = timeToLive,
+                protocol = protocol,
+                headerChecksum = checksum,
+                sourceIP = sourceIp,
+                destinationIP = desIp
         )
     }
 }

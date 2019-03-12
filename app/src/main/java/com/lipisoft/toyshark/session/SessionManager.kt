@@ -55,10 +55,10 @@ object SessionManager {
      */
     fun keepSessionAlive(session: Session) {
         val key = createKey(
-                session.destIp,
-                session.destPort,
-                session.sourceIp,
-                session.sourcePort)
+                destIp = session.destIp,
+                destPort = session.destPort,
+                srcIp = session.sourceIp,
+                srcPort = session.sourcePort)
 
         sessionHashMap[key] = session
     }
@@ -83,27 +83,23 @@ object SessionManager {
     fun getSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
 
         val key = createKey(
-                destIp,
-                destPort,
-                srcIp,
-                srcPort)
+                destIp = destIp,
+                destPort = destPort,
+                srcIp = srcIp,
+                srcPort = srcPort)
 
         return getSessionByKey(key)
     }
 
     fun getSessionByKey(key: String): Session? {
-        return if (sessionHashMap.containsKey(key)) {
-            sessionHashMap[key]
-        } else null
-
+        return if (sessionHashMap.containsKey(key)) sessionHashMap[key] else null
     }
 
     fun getSessionByChannel(channel: AbstractSelectableChannel): Session? {
         val sessionCollection = sessionHashMap.values
 
         for (session in sessionCollection) {
-            if (channel === session.channel)
-                return session
+            if (channel === session.channel) return session
         }
 
         return null
@@ -119,10 +115,10 @@ object SessionManager {
      */
     fun closeSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int) {
         val key = createKey(
-                destIp,
-                destPort,
-                srcIp,
-                srcPort)
+                destIp = destIp,
+                destPort = destPort,
+                srcIp = srcIp,
+                srcPort = srcPort)
 
         val session = sessionHashMap.remove(key)
 
@@ -144,10 +140,10 @@ object SessionManager {
      */
     fun closeSession(session: Session) {
         val key = createKey(
-                session.destIp,
-                session.destPort,
-                session.sourceIp,
-                session.sourcePort)
+                destIp = session.destIp,
+                destPort = session.destPort,
+                srcIp = session.sourceIp,
+                srcPort = session.sourcePort)
 
         sessionHashMap.remove(key)
 
@@ -164,10 +160,10 @@ object SessionManager {
     // 새로운 TCP 세션 생성
     fun createTCPSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
         val key = createKey(
-                destIp,
-                destPort,
-                srcIp,
-                srcPort)
+                destIp = destIp,
+                destPort = destPort,
+                srcIp = srcIp,
+                srcPort = srcPort)
 
         if (sessionHashMap.containsKey(key)) {
             Log.e(TAG, "Session was already created.")
@@ -180,11 +176,16 @@ object SessionManager {
 
         try {
             socketChannel = SocketChannel.open()
-            socketChannel.socket().keepAlive = true
-            socketChannel.socket().tcpNoDelay = true
-            socketChannel.socket().soTimeout = 0
-            socketChannel.socket().receiveBufferSize = DataConst.MAX_RECEIVE_BUFFER_SIZE
-            socketChannel.configureBlocking(false)
+
+            socketChannel.apply {
+                socket().apply {
+                    keepAlive = true
+                    tcpNoDelay = true
+                    soTimeout = 0
+                    receiveBufferSize = DataConst.MAX_RECEIVE_BUFFER_SIZE
+                }
+                configureBlocking(false)
+            }
         } catch (e: SocketException) {
             Log.e(TAG, e.toString())
             return null
@@ -237,12 +238,7 @@ object SessionManager {
         session.channel = socketChannel
 
         if (sessionHashMap.containsKey(key)) {
-            try {
-                socketChannel.close()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-
+            socketChannel.close()
             return null
         } else {
             sessionHashMap[key] = session
@@ -254,15 +250,20 @@ object SessionManager {
     // 새로운 UDP 세션 생성
     fun createUDPSession(destIp: Int, destPort: Int, srcIp: Int, srcPort: Int): Session? {
         val keys = createKey(
-                destIp,
-                destPort,
-                srcIp,
-                srcPort)
+                destIp = destIp,
+                destPort = destPort,
+                srcIp = srcIp,
+                srcPort = srcPort)
 
         if (sessionHashMap.containsKey(keys))
             return sessionHashMap[keys]
 
-        val session = Session(srcIp, srcPort, destIp, destPort)
+        val session = Session(
+                sourceIp = srcIp,
+                sourcePort = srcPort,
+                destIp = destIp,
+                destPort = destPort
+        )
 
         val datagramChannel: DatagramChannel
 
@@ -297,18 +298,16 @@ object SessionManager {
             synchronized(SocketNIODataService.syncSelector2) {
                 selector.wakeup()
                 synchronized(SocketNIODataService.syncSelector) {
-                    val selectionKey: SelectionKey = if (datagramChannel.isConnected) {
+
+                    val selectionKey = if (datagramChannel.isConnected) {
                         datagramChannel.register(
                                 selector,
-                                SelectionKey.OP_READ
-                                        or SelectionKey.OP_WRITE
+                                SelectionKey.OP_READ or SelectionKey.OP_WRITE
                         )
                     } else {
                         datagramChannel.register(
                                 selector,
-                                SelectionKey.OP_CONNECT
-                                        or SelectionKey.OP_READ
-                                        or SelectionKey.OP_WRITE
+                                SelectionKey.OP_CONNECT or SelectionKey.OP_READ or SelectionKey.OP_WRITE
                         )
                     }
                     session.selectionKey = selectionKey

@@ -57,9 +57,12 @@ object UDPPacketFactory {
 
         ipHeader.totalLength = totalLength
         buffer = ByteArray(totalLength)
+
         val ipData = IPPacketFactory.createIPv4HeaderData(ipHeader)
+
         // calculate checksum for IP header
         val ipChecksum = PacketUtil.calculateChecksum(ipData, 0, ipData.size)
+
         // write result of checksum back to buffer
         System.arraycopy(ipChecksum, 0, ipData, 10, 2)
         System.arraycopy(ipData, 0, buffer, 0, ipData.size)
@@ -67,6 +70,7 @@ object UDPPacketFactory {
         // copy UDP header to buffer
         var start = ipData.size
         val intContainer = ByteArray(4)
+
         PacketUtil.writeIntToBytes(srcPort, intContainer, 0)
 
         // extract the last two bytes of int value
@@ -85,7 +89,7 @@ object UDPPacketFactory {
         System.arraycopy(intContainer, 2, buffer, start, 2)
         start += 2
 
-        //now copy udp data
+        // now copy udp data
         if (packetData != null)
             System.arraycopy(packetData, 0, buffer, start, packetData.size)
 

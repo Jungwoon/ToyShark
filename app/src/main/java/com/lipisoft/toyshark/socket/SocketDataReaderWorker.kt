@@ -88,17 +88,17 @@ internal class SocketDataReaderWorker(
 
         val channel = session.channel as SocketChannel
         val buffer = ByteBuffer.allocate(DataConst.MAX_RECEIVE_BUFFER_SIZE)
-        var len: Int
+        var length: Int
 
         try {
             do {
                 if (!session.isClientWindowFull) {
-                    len = channel.read(buffer)
-                    if (len > 0) {
+                    length = channel.read(buffer)
+                    if (length > 0) {
                         // -1 mean it reach the end of stream
-                        sendToRequester(buffer, len, session)
+                        sendToRequester(buffer, length, session)
                         buffer.clear()
-                    } else if (len == -1) {
+                    } else if (length == -1) {
                         Log.d(TAG, "End of data from remote server, will send FIN to client")
                         Log.d(TAG, "send FIN to: $sessionKey")
                         sendFin(session)
@@ -108,7 +108,7 @@ internal class SocketDataReaderWorker(
                     Log.e(TAG, "*** client window is full, now pause for $sessionKey")
                     break
                 }
-            } while (len > 0)
+            } while (length > 0)
         } catch (e: NotYetConnectedException) {
             Log.e(TAG, "Socket not connected")
         } catch (e: ClosedByInterruptException) {
@@ -160,9 +160,6 @@ internal class SocketDataReaderWorker(
         if (max < 1) {
             max = 1024
         }
-//        else if (max > PCapFileWriter.MAX_PACKET_SIZE - 60) {
-//            max = PCapFileWriter.MAX_PACKET_SIZE - 60
-//        }
 
         val packetBody = session.getReceivedData(max)
         if (packetBody.isNotEmpty()) {
@@ -171,14 +168,14 @@ internal class SocketDataReaderWorker(
             session.sendNext = nextUnAck
 
             val responsePacketData = TCPPacketFactory.createResponsePacketData(
-                    ipHeader,
-                    tcpHeader,
-                    packetBody,
-                    session.hasReceivedLastSegment,
-                    session.recSequence,
-                    unAck,
-                    session.timestampSender,
-                    session.timestampReplyTo)
+                    ip = ipHeader,
+                    tcp = tcpHeader,
+                    packetData = packetBody,
+                    isPsh = session.hasReceivedLastSegment,
+                    ackNumber = session.recSequence,
+                    seqNumber = unAck,
+                    timeSender = session.timestampSender,
+                    timeReplyto = session.timestampReplyTo)
 
             try {
                 writer.write(responsePacketData)
@@ -195,12 +192,12 @@ internal class SocketDataReaderWorker(
         val tcpHeader = session.lastTcpHeader!!
 
         val data = TCPPacketFactory.createFinData(
-                ipHeader,
-                tcpHeader,
-                session.sendNext,
-                session.recSequence,
-                session.timestampSender,
-                session.timestampReplyTo
+                ip = ipHeader,
+                tcp = tcpHeader,
+                ackNumber = session.sendNext,
+                seqNumber = session.recSequence,
+                timeSender = session.timestampSender,
+                timeReplyTo = session.timestampReplyTo
         )
         try {
             writer.write(data)
@@ -214,38 +211,36 @@ internal class SocketDataReaderWorker(
     private fun readUDP(session: Session) {
         val channel = session.channel as DatagramChannel
         val buffer = ByteBuffer.allocate(DataConst.MAX_RECEIVE_BUFFER_SIZE)
-        var len: Int
+        var length: Int
 
         try {
             do {
-                if (session.isAbortingConnection) {
-                    break
-                }
-                len = channel.read(buffer)
-                if (len > 0) {
+                if (session.isAbortingConnection) break
+
+                length = channel.read(buffer)
+
+                if (length > 0) {
                     val date = Date()
                     val responseTime = date.time - session.connectionStartTime
 
-                    buffer.limit(len)
+                    buffer.limit(length)
                     buffer.flip()
 
                     // create UDP packet
-                    val data = ByteArray(len)
-                    System.arraycopy(buffer.array(), 0, data, 0, len)
+                    val data = ByteArray(length)
+                    System.arraycopy(buffer.array(), 0, data, 0, length)
 
                     val packetData = UDPPacketFactory.createResponsePacket(
-                            session.lastIpHeader!!,
-                            session.lastUdpHeader!!,
-                            data
+                            ip = session.lastIpHeader!!,
+                            udp = session.lastUdpHeader!!,
+                            packetData = data
                     )
 
-                    //write to client
-                    writer.write(packetData)
+                    writer.write(packetData) // write to client
 
-                    //publish to packet subscriber
-                    rawPacketQueue.addPacket(packetData)
+                    rawPacketQueue.addPacket(packetData) // publish to packet subscriber
 
-                    Log.d(TAG, "SDR: sent " + len + " bytes to UDP client, packetData.length: "
+                    Log.d(TAG, "SDR: sent " + length + " bytes to UDP client, packetData.length: "
                             + packetData.size)
                     buffer.clear()
 
@@ -263,7 +258,7 @@ internal class SocketDataReaderWorker(
                     }
 
                 }
-            } while (len > 0)
+            } while (length > 0)
         } catch (ex: NotYetConnectedException) {
             Log.e(TAG, "failed to read from unconnected UDP socket")
         } catch (e: IOException) {
