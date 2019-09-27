@@ -5,10 +5,10 @@ Packet Analyzer for Android 로 VPN Service를 이용하여 안드로이드 기�
 
 - Java -> Kotlin 및 리펙토링
 
-![](https://storage.cloud.google.com/jungwoon-blog/images/2019-09-26/1569478861.png)
+![](https://miro.medium.com/max/2160/1*2vjPscgGIKzgTyj9ScPRVw.png)
 
 [권한 요청]
 
-![](https://storage.cloud.google.com/jungwoon-blog/images/2019-09-26/1569478867.png)
+![](https://miro.medium.com/max/2160/1*vPhq6JwuqbwuhTUYDjyAAQ.png)
 
 [캡처된 패킷 정보]
